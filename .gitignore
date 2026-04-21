@@ -4,6 +4,24 @@
 xcuserdata/
 *.xcuserstate
 
-# Build artifacts
+# Xcode and Swift build artifacts
 DerivedData/
 build/
+.build/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+# Carthage
+Carthage/Build/
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
