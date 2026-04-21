@@ -1,0 +1,980 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>客户管理后台 App 原型（iPhone12 横屏）</title>
+  <style>
+    :root {
+      --canvas-w: 844px;
+      --canvas-h: 390px;
+      --safe-side: 52px;
+      --bg: #f2f5f8;
+      --panel: #ffffff;
+      --ink: #17293a;
+      --muted: #6a7a89;
+      --line: #e3e9ef;
+      --brand: #0f6fb6;
+      --brand-soft: #e8f3fb;
+      --ok: #21955a;
+      --bad: #c73931;
+      --shadow: 0 4px 16px rgba(15, 30, 50, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+      background:
+        radial-gradient(circle at 10% 20%, #dbeeff 0%, transparent 40%),
+        radial-gradient(circle at 95% 0%, #e8f8eb 0%, transparent 30%),
+        #eef2f6;
+      overflow: hidden;
+    }
+    .stage {
+      width: 100vw;
+      height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 12px;
+    }
+    .shell {
+      width: var(--canvas-w);
+      height: var(--canvas-h);
+      transform-origin: center;
+    }
+    .phone {
+      width: var(--canvas-w);
+      height: var(--canvas-h);
+      border: 8px solid #11161d;
+      border-radius: 22px;
+      overflow: hidden;
+      background: var(--bg);
+      box-shadow: 0 22px 60px rgba(0,0,0,.24);
+      position: relative;
+      padding: 0 var(--safe-side);
+    }
+    .phone::before,
+    .phone::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: var(--safe-side);
+      background: linear-gradient(180deg, #f4f7fb 0%, #edf2f7 100%);
+      z-index: 1;
+      pointer-events: none;
+    }
+    .phone::before { left: 0; }
+    .phone::after { right: 0; }
+    .app {
+      height: 100%;
+      display: grid;
+      grid-template-rows: 22px 44px 1fr;
+      position: relative;
+      z-index: 2;
+    }
+    .status {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      font-size: 11px;
+      color: #506273;
+      border-bottom: 1px solid #edf2f7;
+      background: #f9fcff;
+    }
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+    .nav-right {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .nav h1 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: .2px;
+    }
+    .icon-btn {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 10px;
+      height: 30px;
+      min-width: 56px;
+      padding: 0 10px;
+      font-size: 12px;
+      color: var(--ink);
+    }
+    .icon-back {
+      min-width: 34px;
+      width: 34px;
+      padding: 0;
+      font-size: 18px;
+      line-height: 1;
+      font-weight: 700;
+    }
+    .page {
+      display: none;
+      height: 100%;
+      overflow: hidden;
+    }
+    .page.active { display: block; }
+    .scroll {
+      height: 100%;
+      overflow: auto;
+      padding: 10px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      padding: 10px;
+      margin-bottom: 9px;
+    }
+    .seg {
+      display: grid;
+      grid-template-columns: repeat(3,1fr);
+      background: #f2f6fa;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      padding: 3px;
+      gap: 4px;
+      margin-bottom: 10px;
+    }
+    .seg button {
+      border: 0;
+      background: transparent;
+      border-radius: 8px;
+      height: 28px;
+      font-size: 12px;
+      color: #516273;
+      font-weight: 600;
+    }
+    .seg button.active {
+      background: #fff;
+      color: var(--brand);
+      box-shadow: 0 2px 10px rgba(14,79,130,.12);
+    }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .kpi {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 8px;
+      background: linear-gradient(180deg,#fff,#f8fbff);
+    }
+    .kpi .label { font-size: 11px; color: var(--muted); }
+    .kpi .value { margin-top: 4px; font-size: 18px; font-weight: 700; color: #0d5b95; }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    input, select {
+      width: 100%;
+      height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 0 10px;
+      font-size: 12px;
+      background: #fff;
+    }
+    .btn {
+      border: 1px solid var(--line);
+      height: 34px;
+      border-radius: 10px;
+      background: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--ink);
+      padding: 0 12px;
+    }
+    .btn.primary {
+      border-color: var(--brand);
+      background: var(--brand);
+      color: #fff;
+    }
+    .scan-list { padding-bottom: 8px; }
+    .pull-hint, .load-more {
+      text-align: center;
+      font-size: 11px;
+      color: #6a7a89;
+      height: 20px;
+      line-height: 20px;
+      user-select: none;
+    }
+    .pull-hint { margin-bottom: 2px; }
+    .load-more { margin-top: 2px; }
+    .scan-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 8px;
+      margin-bottom: 7px;
+    }
+    .scan-item .row-1,
+    .scan-item .row-2,
+    .scan-item .row-3 {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      column-gap: 10px;
+    }
+    .scan-item .row-1 { margin-bottom: 6px; }
+    .scan-item .row-2 { margin-bottom: 6px; }
+    .scan-item .left-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      align-items: center;
+      color: #25384b;
+      font-size: 12px;
+    }
+    .scan-item .hair-id { font-weight: 700; }
+    .scan-item .result-strip {
+      height: 38px;
+      border: 1px solid #9e978d;
+      border-radius: 2px;
+      background:
+        linear-gradient(0deg, rgba(120,103,74,.16), rgba(120,103,74,.16)),
+        repeating-linear-gradient(
+          7deg,
+          #d2c5aa 0px,
+          #d2c5aa 6px,
+          #c9b796 6px,
+          #c9b796 11px
+        );
+    }
+    .scan-item .right-status {
+      font-size: 18px;
+      font-weight: 700;
+      color: #172739;
+      white-space: nowrap;
+      text-align: right;
+      min-width: 44px;
+    }
+    .scan-item .row-3 .left-meta {
+      font-size: 14px;
+      color: #172739;
+      gap: 8px 14px;
+    }
+    .sheet {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: min(520px, calc(100% - 20px));
+      transform: translate(-50%, -50%);
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: 0 20px 40px rgba(9,22,40,.2);
+      padding: 10px;
+      z-index: 5;
+      display: none;
+    }
+    .sheet.show { display: block; }
+    .sheet h3 {
+      margin: 0 0 8px;
+      font-size: 13px;
+    }
+    .sheet-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .sheet-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(17,24,39,.28);
+      z-index: 4;
+      display: none;
+    }
+    .overlay.show { display: block; }
+    .detail-page {
+      height: 100%;
+      overflow: hidden;
+      display: none;
+      background: #f3f7fb;
+    }
+    .detail-page.show { display: block; }
+    .detail-card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      padding: 8px;
+    }
+    .detail-id {
+      text-align: left;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: #1f2f40;
+    }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      gap: 6px;
+      align-items: stretch;
+    }
+    .detail-photo {
+      border-radius: 10px;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(12,22,36,.05), rgba(12,22,36,.5)),
+        linear-gradient(125deg, #cab79e 0%, #9f7d62 52%, #6c4f43 100%);
+      min-height: 228px;
+      position: relative;
+      border: 1px solid #d1d8df;
+    }
+    .detail-photo .tag {
+      position: absolute;
+      left: 10px;
+      bottom: 56px;
+      font-size: 12px;
+      color: #f1f6fc;
+      font-weight: 700;
+    }
+    .detail-photo .tag2 {
+      position: absolute;
+      left: 10px;
+      bottom: 34px;
+      font-size: 11px;
+      color: #e0e8f0;
+    }
+    .detail-photo .tag3 {
+      position: absolute;
+      left: 10px;
+      bottom: 14px;
+      font-size: 11px;
+      color: #e0e8f0;
+    }
+    .swatch {
+      border: 1px solid #cbb89d;
+      background:
+        linear-gradient(0deg, rgba(176,133,83,.1), rgba(176,133,83,.1)),
+        repeating-linear-gradient(8deg, #dfc494 0, #dfc494 5px, #d2b27e 5px, #d2b27e 10px);
+    }
+    .swatch.alt {
+      background:
+        linear-gradient(0deg, rgba(160,115,74,.14), rgba(160,115,74,.14)),
+        repeating-linear-gradient(8deg, #d9b482 0, #d9b482 5px, #cfa16e 5px, #cfa16e 10px);
+    }
+    .detail-right {
+      border-left: 1px solid #eef2f6;
+      display: grid;
+      grid-template-rows: 1fr 1fr;
+      min-height: 228px;
+    }
+    .detail-right .row {
+      padding: 6px 8px;
+      display: grid;
+      grid-template-columns: 92px 92px 1fr;
+      gap: 6px;
+      align-items: start;
+    }
+    .swatch-wrap {
+      display: grid;
+      grid-template-rows: 88px auto;
+      gap: 4px;
+    }
+    .detail-right .row + .row {
+      border-top: 1px solid #eef2f6;
+    }
+    .item-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .item-content {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+    .level {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1c2b3b;
+      line-height: 1.1;
+    }
+    .part-line {
+      color: #788899;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .formula-line {
+      color: #566677;
+      font-size: 11px;
+      line-height: 1.5;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      white-space: pre-wrap;
+      display: block;
+      width: 100%;
+    }
+    .ratio-line {
+      color: #566677;
+      font-size: 11px;
+      line-height: 1.4;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      display: block;
+      width: 100%;
+    }
+    .ref-line {
+      color: #1d2d3e;
+      font-size: 12px;
+      letter-spacing: .1px;
+      display: block;
+      width: 100%;
+    }
+    .delta-line {
+      color: #1d2d3e;
+      font-size: 12px;
+      letter-spacing: .1px;
+      display: block;
+      width: 100%;
+    }
+    .lab-line {
+      font-size: 10px;
+      line-height: 1.2;
+      color: #6b7b8c;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .hidden { display: none !important; }
+    .landscape-tip {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+      color: #fff;
+      background: rgba(10,16,28,.9);
+      z-index: 999;
+      font-size: 16px;
+    }
+    @media (orientation: portrait) { .landscape-tip { display: flex; } }
+    @media (max-height: 460px), (max-width: 932px) {
+      :root { --safe-side: 44px; }
+      .phone { border-width: 0; border-radius: 0; }
+      .app { grid-template-rows: 20px 40px 1fr; }
+      .status { font-size: 10px; padding: 0 10px; }
+      .nav { padding: 0 10px; }
+      .nav h1 { font-size: 14px; }
+      .detail-grid { grid-template-columns: 1fr; }
+      .detail-right { border-left: 0; border-top: 1px solid #eef2f6; min-height: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="landscape-tip">请横屏查看该 App 原型</div>
+  <div class="stage">
+    <div class="shell" id="shell">
+      <div class="phone">
+        <div class="app">
+          <div class="status"><span>9:41</span><span>5G  87%</span></div>
+          <div class="nav">
+            <button class="icon-btn icon-back" id="navLeft" aria-label="返回">‹</button>
+            <h1 id="navTitle">统计</h1>
+            <div class="nav-right">
+              <button class="icon-btn" id="navAction">记录</button>
+            </div>
+          </div>
+
+          <div id="statsPage" class="page active">
+            <div class="scroll">
+              <div class="seg" id="statsSeg">
+                <button class="active" data-pane="all">卖出至今</button>
+                <button data-pane="quick">过去时段</button>
+                <button data-pane="custom">任意时间</button>
+              </div>
+
+              <div class="card" data-pane-body="all">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                  <div style="font-size:12px;color:#5c6f81;">统计首页</div>
+                </div>
+                <div class="kpi-grid">
+                  <div class="kpi"><div class="label">卖出设备总数</div><div class="value" id="soldCount">0</div></div>
+                  <div class="kpi"><div class="label">总使用次数</div><div class="value" id="allUses">0</div></div>
+                  <div class="kpi"><div class="label">至少使用过1次设备数</div><div class="value" id="usedCount">0</div></div>
+                  <div class="kpi"><div class="label">使用率</div><div class="value" id="allRate">0%</div></div>
+                </div>
+              </div>
+
+              <div class="card hidden" data-pane-body="quick">
+                <div class="seg" id="quickSeg" style="grid-template-columns:repeat(4,1fr);margin-bottom:8px;">
+                  <button class="active" data-hours="24">24h</button>
+                  <button data-hours="48">48h</button>
+                  <button data-hours="72">72h</button>
+                  <button data-hours="168">1周</button>
+                </div>
+                <div class="kpi-grid">
+                  <div class="kpi"><div class="label">总使用次数</div><div class="value" id="quickUses">0</div></div>
+                  <div class="kpi"><div class="label">使用设备数</div><div class="value" id="quickDevices">0</div></div>
+                  <div class="kpi"><div class="label">使用率</div><div class="value" id="quickRate">0%</div></div>
+                </div>
+              </div>
+
+              <div class="card hidden" data-pane-body="custom">
+                <div class="row">
+                  <input id="customStart" type="datetime-local" />
+                  <input id="customEnd" type="datetime-local" />
+                </div>
+                <div style="margin-top:8px;"><button class="btn primary" id="calcCustom">计算</button></div>
+                <div class="kpi-grid" style="margin-top:8px;">
+                  <div class="kpi"><div class="label">总使用次数</div><div class="value" id="customUses">0</div></div>
+                  <div class="kpi"><div class="label">使用设备数</div><div class="value" id="customDevices">0</div></div>
+                  <div class="kpi"><div class="label">使用率</div><div class="value" id="customRate">0%</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="scanPage" class="page">
+            <div class="scroll">
+              <div class="pull-hint" id="pullHint">下拉刷新</div>
+              <div class="scan-list" id="scanList"></div>
+              <div class="load-more" id="loadMoreHint">上拉加载更多</div>
+            </div>
+          </div>
+
+          <div class="overlay" id="overlay"></div>
+          <div class="sheet" id="filterSheet">
+            <div class="sheet-head">
+              <h3 style="margin:0;">筛选条件</h3>
+              <button class="btn" id="closeSheet">关闭</button>
+            </div>
+            <div class="row">
+              <input id="fStart" type="datetime-local" />
+              <input id="fEnd" type="datetime-local" />
+            </div>
+            <div class="row">
+              <input id="fStore" placeholder="门店名称" />
+              <input id="fCity" placeholder="城市" />
+            </div>
+            <div class="row" style="grid-template-columns:1fr;">
+              <input id="fContact" placeholder="联系人" />
+            </div>
+            <div class="sheet-actions">
+              <button class="btn" id="resetFilter">重置</button>
+              <button class="btn primary" id="applyFilter">应用</button>
+            </div>
+          </div>
+
+          <div class="page detail-page" id="detailPage">
+            <div class="scroll">
+              <div class="detail-card">
+                <div class="detail-id" id="detailHairId">Hair item id</div>
+                <div class="detail-grid">
+                  <div class="detail-photo">
+                    <div class="tag" id="detailColorTag">郁金醇棕</div>
+                    <div class="tag2">7.5-9.0度</div>
+                    <div class="tag3">差异要求1度以内</div>
+                  </div>
+                  <div class="detail-right">
+                    <div class="row">
+                      <div class="swatch-wrap">
+                        <div class="swatch"></div>
+                        <div class="lab-line" id="detailLabTopA">Lab: 62.1, 7.8, 18.4</div>
+                      </div>
+                      <div class="swatch-wrap">
+                        <div class="swatch"></div>
+                        <div class="lab-line" id="detailLabTopB">Lab: 63.4, 8.1, 17.9</div>
+                      </div>
+                      <div class="item-content">
+                        <div class="item-head">
+                          <div class="level" id="detailLevelTop">8.5度</div>
+                          <div class="part-line" id="detailPartTop">根部 8.0cm</div>
+                        </div>
+                        <div class="formula-line" id="detailFormulaTop">配方：6/77 + 4/0 + 8/65 + 00 + 3%</div>
+                        <div class="ratio-line" id="detailRatioTop">比例：2 : 2 : 1 : 10 : 15</div>
+                        <div class="ref-line" id="detailRefTop">参考发条id: A1794-1</div>
+                        <div class="delta-line" id="detailDeltaTop">Delta: 0.32</div>
+                      </div>
+                    </div>
+                    <div class="row">
+                      <div class="swatch-wrap">
+                        <div class="swatch alt"></div>
+                        <div class="lab-line" id="detailLabBottomA">Lab: 59.6, 9.2, 16.5</div>
+                      </div>
+                      <div class="swatch-wrap">
+                        <div class="swatch alt"></div>
+                        <div class="lab-line" id="detailLabBottomB">Lab: 60.1, 8.9, 15.8</div>
+                      </div>
+                      <div class="item-content">
+                        <div class="item-head">
+                          <div class="level" id="detailLevelBottom">8.0度</div>
+                          <div class="part-line" id="detailPartBottom">尾部 6.7cm</div>
+                        </div>
+                        <div class="formula-line" id="detailFormulaBottom">配方：6/77 + 8/65 + 4/0 + 00 + 3%</div>
+                        <div class="ratio-line" id="detailRatioBottom">比例：3 : 3 : 2 : 24 : 32</div>
+                        <div class="ref-line" id="detailRefBottom">参考发条id: ZA887-3</div>
+                        <div class="delta-line" id="detailDeltaBottom">Delta: 0.47</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const soldDevices = ["D001","D002","D003","D004","D005","D006"];
+    const scans = [
+      { id: 1, deviceId: "D001", store: "上海静安店", city: "上海", contact: "王店长", time: "2026-04-15T10:10:00", length: "中长", color: "冷棕", satisfied: true, isFactoryCalibration: false, formula: "底色6度+3%双氧；6N:6A=2:1" },
+      { id: 2, deviceId: "D003", store: "深圳南山店", city: "深圳", contact: "李老师", time: "2026-04-15T08:31:00", length: "短发", color: "亚麻灰", satisfied: false, isFactoryCalibration: false, formula: "底色偏暖，先0/11微量校正；7A:8P=1:1；停留24分钟。" },
+      { id: 3, deviceId: "D002", store: "北京朝阳店", city: "北京", contact: "赵主管", time: "2026-04-14T18:12:00", length: "长发", color: "蜜茶棕", satisfied: true, isFactoryCalibration: false, formula: "9N:7G=1:1，发尾减半上色，停留20分钟。" },
+      { id: 4, deviceId: "D004", store: "广州天河店", city: "广州", contact: "周老师", time: "2026-04-14T12:05:00", length: "中短", color: "酒红", satisfied: true, isFactoryCalibration: false, formula: "5RV+6%双氧，先发中后发根，停留32分钟。" },
+      { id: 5, deviceId: "D005", store: "杭州西湖店", city: "杭州", contact: "陈店长", time: "2026-04-13T16:03:00", length: "中长", color: "青木棕", satisfied: true, isFactoryCalibration: false, formula: "6M:7N=2:1，加入0/00 10%，停留26分钟。" },
+      { id: 6, deviceId: "D006", store: "成都高新店", city: "成都", contact: "孙顾问", time: "2026-04-12T09:45:00", length: "短发", color: "黑茶", satisfied: true, isFactoryCalibration: false, formula: "4N 单色方案，局部高光加5%透明剂。" },
+      { id: 7, deviceId: "D999", store: "工厂校准", city: "上海", contact: "工程师", time: "2026-03-01T10:00:00", length: "N/A", color: "N/A", satisfied: true, isFactoryCalibration: true, formula: "内部校准，不显示。" }
+    ];
+
+    const shell = document.getElementById("shell");
+    const navTitle = document.getElementById("navTitle");
+    const navLeft = document.getElementById("navLeft");
+    const navActionBtn = document.getElementById("navAction");
+    const statsPage = document.getElementById("statsPage");
+    const scanPage = document.getElementById("scanPage");
+    const detailPage = document.getElementById("detailPage");
+    const overlay = document.getElementById("overlay");
+    const filterSheet = document.getElementById("filterSheet");
+    const scanScroll = document.querySelector("#scanPage .scroll");
+    const pullHint = document.getElementById("pullHint");
+    const loadMoreHint = document.getElementById("loadMoreHint");
+    let currentPage = "home";
+    const pageSize = 4;
+    let filteredScans = [];
+    let visibleScanCount = 0;
+    let isLoadingMore = false;
+    let isRefreshing = false;
+    let pullStartY = null;
+
+    function syncNav() {
+      if (currentPage === "home") navTitle.textContent = "统计";
+      else if (currentPage === "scan") navTitle.textContent = "扫描记录";
+      else navTitle.textContent = "扫描详情";
+      navLeft.style.visibility = currentPage === "home" ? "hidden" : "visible";
+      if (currentPage === "home") {
+        navActionBtn.style.visibility = "visible";
+        navActionBtn.textContent = "记录";
+      } else if (currentPage === "scan") {
+        navActionBtn.style.visibility = "visible";
+        navActionBtn.textContent = "筛选";
+      } else {
+        navActionBtn.style.visibility = "hidden";
+      }
+    }
+
+    function fitCanvas() {
+      const scale = Math.min((window.innerWidth - 24) / 844, (window.innerHeight - 24) / 390, 1);
+      shell.style.transform = `scale(${Math.max(scale, 0.1)})`;
+    }
+
+    function validScans() { return scans.filter(s => !s.isFactoryCalibration); }
+
+    function inRange(t, start, end) {
+      const v = new Date(t).getTime();
+      if (start && v < start) return false;
+      if (end && v > end) return false;
+      return true;
+    }
+
+    function calcRange(start, end) {
+      const list = validScans().filter(s => inRange(s.time, start, end));
+      const dev = new Set(list.map(i => i.deviceId));
+      const rate = soldDevices.length ? ((dev.size / soldDevices.length) * 100).toFixed(1) + "%" : "0%";
+      return { uses: list.length, devs: dev.size, rate };
+    }
+
+    function renderStatsAll() {
+      const r = calcRange(null, null);
+      document.getElementById("soldCount").textContent = soldDevices.length;
+      document.getElementById("allUses").textContent = r.uses;
+      document.getElementById("usedCount").textContent = r.devs;
+      document.getElementById("allRate").textContent = r.rate;
+    }
+
+    function renderQuick(hours = 24) {
+      const end = Date.now();
+      const start = end - hours * 3600 * 1000;
+      const r = calcRange(start, end);
+      document.getElementById("quickUses").textContent = r.uses;
+      document.getElementById("quickDevices").textContent = r.devs;
+      document.getElementById("quickRate").textContent = r.rate;
+    }
+
+    function renderCustom() {
+      const s = document.getElementById("customStart").value;
+      const e = document.getElementById("customEnd").value;
+      const r = calcRange(s ? new Date(s).getTime() : null, e ? new Date(e).getTime() : null);
+      document.getElementById("customUses").textContent = r.uses;
+      document.getElementById("customDevices").textContent = r.devs;
+      document.getElementById("customRate").textContent = r.rate;
+    }
+
+    function showStatsPane(name) {
+      document.querySelectorAll("#statsSeg button").forEach(b => b.classList.remove("active"));
+      document.querySelector(`#statsSeg button[data-pane="${name}"]`).classList.add("active");
+      document.querySelectorAll("[data-pane-body]").forEach(v => v.classList.add("hidden"));
+      document.querySelector(`[data-pane-body="${name}"]`).classList.remove("hidden");
+    }
+
+    function renderScanList(list) {
+      const box = document.getElementById("scanList");
+      box.innerHTML = "";
+      list.forEach(item => {
+        const div = document.createElement("div");
+        div.className = "scan-item";
+        const statusText = item.satisfied ? "满意" : "不满意";
+        const segmentText = item.length.includes("长") ? "分1段" : "分2段";
+        div.innerHTML = `
+          <div class="row-1">
+            <div class="left-meta">
+              <span class="hair-id">${item.deviceId || ("hair_item_" + item.id)}</span>
+              <span>${item.time.replace("T", " ").slice(0,16)}</span>
+              <span>${item.city}</span>
+              <span>${item.contact}</span>
+            </div>
+            <div></div>
+          </div>
+          <div class="row-2">
+            <div class="result-strip"></div>
+            <div class="right-status">${statusText}</div>
+          </div>
+          <div class="row-3">
+            <div class="left-meta">
+              <span>${item.length.replace("中长", "25cm").replace("短发","15cm").replace("长发","30cm").replace("中短","20cm")}</span>
+              <span>${segmentText}</span>
+              <span>目标色：${item.color}</span>
+            </div>
+            <div></div>
+          </div>
+        `;
+        div.addEventListener("click", () => openDetail(item));
+        box.appendChild(div);
+      });
+    }
+
+    function setScanDataset(list) {
+      filteredScans = [...list];
+      visibleScanCount = Math.min(pageSize, filteredScans.length);
+      renderVisibleScans();
+    }
+
+    function renderVisibleScans() {
+      renderScanList(filteredScans.slice(0, visibleScanCount));
+      if (!filteredScans.length) {
+        loadMoreHint.textContent = "暂无记录";
+      } else if (visibleScanCount >= filteredScans.length) {
+        loadMoreHint.textContent = "没有更多了";
+      } else {
+        loadMoreHint.textContent = "上拉加载更多";
+      }
+    }
+
+    function loadMoreScans() {
+      if (isLoadingMore || isRefreshing) return;
+      if (visibleScanCount >= filteredScans.length) return;
+      isLoadingMore = true;
+      loadMoreHint.textContent = "加载中...";
+      setTimeout(() => {
+        visibleScanCount = Math.min(visibleScanCount + pageSize, filteredScans.length);
+        renderVisibleScans();
+        isLoadingMore = false;
+      }, 380);
+    }
+
+    function refreshScans() {
+      if (isRefreshing || isLoadingMore) return;
+      isRefreshing = true;
+      pullHint.textContent = "刷新中...";
+      setTimeout(() => {
+        visibleScanCount = Math.min(pageSize, filteredScans.length);
+        renderVisibleScans();
+        pullHint.textContent = "下拉刷新";
+        isRefreshing = false;
+      }, 420);
+    }
+
+    function openDetail(item) {
+      document.getElementById("detailHairId").textContent = item.deviceId || `Hair item ${item.id}`;
+      document.getElementById("detailColorTag").textContent = item.color;
+      document.getElementById("detailLevelTop").textContent = item.satisfied ? "8.5度" : "8.3度";
+      document.getElementById("detailPartTop").textContent = "根部 8.0cm";
+      document.getElementById("detailFormulaTop").textContent = `配方：${item.formula}`;
+      document.getElementById("detailRatioTop").textContent = "比例：2 : 2 : 1 : 10 : 15";
+      document.getElementById("detailRefTop").textContent = "参考发条id: A1794-1";
+      document.getElementById("detailDeltaTop").textContent = item.satisfied ? "Delta: 0.32" : "Delta: 0.58";
+      document.getElementById("detailLabTopA").textContent = item.satisfied ? "Lab: 62.1, 7.8, 18.4" : "Lab: 61.3, 8.4, 19.1";
+      document.getElementById("detailLabTopB").textContent = item.satisfied ? "Lab: 63.4, 8.1, 17.9" : "Lab: 62.0, 8.8, 18.6";
+      document.getElementById("detailLevelBottom").textContent = item.satisfied ? "8.0度" : "7.8度";
+      document.getElementById("detailPartBottom").textContent = "尾部 6.7cm";
+      document.getElementById("detailFormulaBottom").textContent = "配方：6/77 + 8/65 + 4/0 + 00 + 3%";
+      document.getElementById("detailRatioBottom").textContent = "比例：3 : 3 : 2 : 24 : 32";
+      document.getElementById("detailRefBottom").textContent = "参考发条id: ZA887-3";
+      document.getElementById("detailDeltaBottom").textContent = item.satisfied ? "Delta: 0.47" : "Delta: 0.73";
+      document.getElementById("detailLabBottomA").textContent = item.satisfied ? "Lab: 59.6, 9.2, 16.5" : "Lab: 58.2, 9.8, 17.3";
+      document.getElementById("detailLabBottomB").textContent = item.satisfied ? "Lab: 60.1, 8.9, 15.8" : "Lab: 58.8, 9.5, 16.7";
+      scanPage.classList.remove("active");
+      detailPage.classList.add("active");
+      currentPage = "detail";
+      syncNav();
+    }
+
+    function closeDetail() {
+      detailPage.classList.remove("active");
+      if (currentPage === "detail") {
+        scanPage.classList.add("active");
+        currentPage = "scan";
+        syncNav();
+      }
+    }
+
+    function openFilter() {
+      overlay.classList.add("show");
+      filterSheet.classList.add("show");
+    }
+    function closeFilter() {
+      overlay.classList.remove("show");
+      filterSheet.classList.remove("show");
+    }
+    function applyFilter() {
+      const start = document.getElementById("fStart").value;
+      const end = document.getElementById("fEnd").value;
+      const store = document.getElementById("fStore").value.trim();
+      const city = document.getElementById("fCity").value.trim();
+      const contact = document.getElementById("fContact").value.trim();
+      const result = validScans().filter(i => {
+        if (!inRange(i.time, start ? new Date(start).getTime() : null, end ? new Date(end).getTime() : null)) return false;
+        if (store && !i.store.includes(store)) return false;
+        if (city && !i.city.includes(city)) return false;
+        if (contact && !i.contact.includes(contact)) return false;
+        return true;
+      });
+      setScanDataset(result);
+      closeFilter();
+    }
+
+    function resetFilter() {
+      ["fStart","fEnd","fStore","fCity","fContact"].forEach(id => document.getElementById(id).value = "");
+      setScanDataset(validScans());
+    }
+
+    function goHome() {
+      detailPage.classList.remove("active");
+      currentPage = "home";
+      statsPage.classList.add("active");
+      scanPage.classList.remove("active");
+      closeFilter();
+      syncNav();
+    }
+
+    function goScanList() {
+      detailPage.classList.remove("active");
+      currentPage = "scan";
+      statsPage.classList.remove("active");
+      scanPage.classList.add("active");
+      closeFilter();
+      syncNav();
+    }
+
+    document.querySelectorAll("#statsSeg button").forEach(b => {
+      b.addEventListener("click", () => showStatsPane(b.dataset.pane));
+    });
+
+    document.querySelectorAll("#quickSeg button").forEach(b => {
+      b.addEventListener("click", () => {
+        document.querySelectorAll("#quickSeg button").forEach(x => x.classList.remove("active"));
+        b.classList.add("active");
+        renderQuick(Number(b.dataset.hours));
+      });
+    });
+
+    document.getElementById("calcCustom").addEventListener("click", renderCustom);
+    navActionBtn.addEventListener("click", () => {
+      if (currentPage === "home") goScanList();
+      else if (currentPage === "scan") openFilter();
+    });
+    navLeft.addEventListener("click", () => {
+      if (currentPage === "scan") {
+        goHome();
+      } else if (currentPage === "detail") {
+        closeDetail();
+      }
+    });
+
+    document.getElementById("closeSheet").addEventListener("click", closeFilter);
+    overlay.addEventListener("click", () => {
+      closeFilter();
+    });
+    document.getElementById("applyFilter").addEventListener("click", applyFilter);
+    document.getElementById("resetFilter").addEventListener("click", resetFilter);
+
+    scanScroll.addEventListener("scroll", () => {
+      if (currentPage !== "scan") return;
+      if (scanScroll.scrollTop + scanScroll.clientHeight >= scanScroll.scrollHeight - 8) {
+        loadMoreScans();
+      }
+    });
+    scanScroll.addEventListener("touchstart", e => {
+      if (currentPage !== "scan" || scanScroll.scrollTop > 0) return;
+      pullStartY = e.touches[0].clientY;
+    }, { passive: true });
+    scanScroll.addEventListener("touchmove", e => {
+      if (pullStartY == null || currentPage !== "scan") return;
+      const dy = e.touches[0].clientY - pullStartY;
+      if (dy > 16 && scanScroll.scrollTop <= 0 && !isRefreshing) {
+        pullHint.textContent = dy > 66 ? "松开刷新" : "下拉刷新";
+      }
+    }, { passive: true });
+    scanScroll.addEventListener("touchend", e => {
+      if (pullStartY == null || currentPage !== "scan") return;
+      const touch = e.changedTouches && e.changedTouches[0];
+      const dy = touch ? touch.clientY - pullStartY : 0;
+      pullStartY = null;
+      if (dy > 66 && scanScroll.scrollTop <= 0) {
+        refreshScans();
+      } else if (!isRefreshing) {
+        pullHint.textContent = "下拉刷新";
+      }
+    }, { passive: true });
+
+    renderStatsAll();
+    renderQuick(24);
+    renderCustom();
+    setScanDataset(validScans());
+    goHome();
+    fitCanvas();
+    syncNav();
+    window.addEventListener("resize", fitCanvas);
+  </script>
+</body>
+</html>

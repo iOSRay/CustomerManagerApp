@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>客户管理后台 - 设计图稿</title>
+  <style>
+    :root {
+      --bg: #edf2f7;
+      --panel: #fff;
+      --ink: #17293a;
+      --muted: #6a7a89;
+      --line: #e3e9ef;
+      --brand: #0f6fb6;
+      --brand-soft: #e8f3fb;
+      --ok: #21955a;
+      --bad: #c73931;
+      --canvas-w: 844px;
+      --canvas-h: 390px;
+      --safe-side: 52px;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--ink); }
+    .wrap { width: min(1400px, 96vw); margin: 20px auto; }
+    h1 { margin: 0 0 10px; font-size: 20px; }
+    .tokens { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
+    .token { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 10px; font-size: 12px; }
+    .swatch { width: 100%; height: 26px; border-radius: 6px; border: 1px solid #d7e0ea; margin-bottom: 6px; }
+    .boards { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    .board { background: #fff; border: 1px solid #dbe3ec; border-radius: 14px; padding: 12px; }
+    .title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .phone { width: var(--canvas-w); height: var(--canvas-h); border: 8px solid #131821; border-radius: 20px; overflow: hidden; background: #f2f5f8; position: relative; }
+    .phone::before, .phone::after { content: ""; position: absolute; top: 0; bottom: 0; width: var(--safe-side); background: #f3f7fb; z-index: 1; }
+    .phone::before { left: 0; }
+    .phone::after { right: 0; }
+    .app { position: relative; z-index: 2; height: 100%; padding: 0 var(--safe-side); display: grid; grid-template-rows: 22px 44px 1fr; }
+    .status, .nav { background: #fff; border-bottom: 1px solid var(--line); }
+    .status { font-size: 11px; color: #597082; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; }
+    .nav { display: flex; align-items: center; justify-content: space-between; padding: 0 10px; }
+    .icon { width: 34px; height: 30px; border: 1px solid var(--line); border-radius: 10px; display: grid; place-items: center; background: #fff; font-size: 16px; }
+    .btn { height: 30px; padding: 0 10px; border: 1px solid var(--line); border-radius: 10px; font-size: 12px; display: grid; place-items: center; }
+    .content { padding: 10px; overflow: hidden; }
+    .seg { display: grid; grid-template-columns: repeat(3,1fr); gap: 4px; padding: 3px; background: #f2f6fa; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; }
+    .seg span { height: 26px; border-radius: 8px; font-size: 11px; display: grid; place-items: center; color: #597082; }
+    .seg .on { background: #fff; color: var(--brand); font-weight: 700; }
+    .card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 8px; }
+    .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .kpi { border: 1px solid var(--line); border-radius: 10px; padding: 7px; }
+    .kpi b { display: block; font-size: 16px; color: #0d5b95; margin-top: 4px; }
+    .list-item { border: 1px solid var(--line); border-radius: 10px; padding: 7px; background: #fff; margin-bottom: 6px; font-size: 11px; }
+    .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .badge { border-radius: 999px; color: #fff; font-size: 10px; padding: 2px 7px; }
+    .ok { background: var(--ok); }
+    .sheet { position: absolute; left: 50%; top: 50%; width: min(520px, calc(100% - 20px)); transform: translate(-50%, -50%); background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 8px; box-shadow: 0 18px 30px rgba(14,23,36,.18); }
+    .inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; }
+    .inp { height: 30px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+    .actions { display: flex; justify-content: flex-end; gap: 6px; }
+    .note { font-size: 12px; color: #607282; }
+    .detail-meta { font-size: 12px; line-height: 1.6; color: #415667; }
+    .formula { margin-top: 8px; border: 1px dashed #b7cbe3; border-radius: 10px; padding: 8px; font-size: 12px; background: #fbfeff; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>客户管理后台 App 设计图稿（iPhone12 横屏）</h1>
+    <div class="tokens">
+      <div class="token"><div class="swatch" style="background:#0f6fb6"></div>主色 `#0F6FB6`</div>
+      <div class="token"><div class="swatch" style="background:#e8f3fb"></div>浅主色 `#E8F3FB`</div>
+      <div class="token"><div class="swatch" style="background:#17293a"></div><span style="color:#fff;padding:2px 4px;">正文色 `#17293A`</span></div>
+      <div class="token"><div class="swatch" style="background:#e3e9ef"></div>分割线 `#E3E9EF`</div>
+    </div>
+
+    <div class="boards">
+      <div class="board">
+        <div class="title"><b>画板 A: 统计首页</b><span class="note">首页，扫描记录为子页面入口</span></div>
+        <div class="phone"><div class="app">
+          <div class="status"><span>9:41</span><span>5G 87%</span></div>
+          <div class="nav"><span class="icon" style="visibility:hidden;">‹</span><b>统计</b><span class="btn">记录</span></div>
+          <div class="content">
+            <div class="seg"><span class="on">卖出至今</span><span>过去时段</span><span>任意时间</span></div>
+            <div class="card">
+              <div class="kpis">
+                <div class="kpi">卖出设备总数<b>6</b></div>
+                <div class="kpi">总使用次数<b>6</b></div>
+                <div class="kpi">使用设备数<b>6</b></div>
+                <div class="kpi">使用率<b>100%</b></div>
+              </div>
+            </div>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="board">
+        <div class="title"><b>画板 B: 扫描记录列表</b><span class="note">右上角为筛选入口，左上角返回首页</span></div>
+        <div class="phone"><div class="app">
+          <div class="status"><span>9:41</span><span>5G 87%</span></div>
+          <div class="nav"><span class="icon">‹</span><b>扫描记录</b><span class="btn">筛选</span></div>
+          <div class="content">
+            <div class="list-item"><div class="row"><b>上海静安店</b><span class="badge ok">满意</span></div><div>2026-04-15 10:10 · 上海 · 王店长 · 中长 · 冷棕</div></div>
+            <div class="list-item"><div class="row"><b>深圳南山店</b><span class="badge" style="background:#c73931">不满意</span></div><div>2026-04-15 08:31 · 深圳 · 李老师 · 短发 · 亚麻灰</div></div>
+            <div class="list-item"><div class="row"><b>北京朝阳店</b><span class="badge ok">满意</span></div><div>2026-04-14 18:12 · 北京 · 赵主管 · 长发 · 蜜茶棕</div></div>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="board">
+        <div class="title"><b>画板 C: 筛选弹窗</b><span class="note">右上关闭，右下“重置+应用”</span></div>
+        <div class="phone"><div class="app">
+          <div class="status"><span>9:41</span><span>5G 87%</span></div>
+          <div class="nav"><span class="icon">‹</span><b>扫描记录</b><span class="btn">筛选</span></div>
+          <div class="content" style="background:rgba(18,31,49,.12);"></div>
+          <div class="sheet">
+            <div class="row"><b style="font-size:13px;">筛选条件</b><span class="btn">关闭</span></div>
+            <div class="inputs"><div class="inp"></div><div class="inp"></div></div>
+            <div class="inputs"><div class="inp"></div><div class="inp"></div></div>
+            <div class="inputs" style="grid-template-columns:1fr;"><div class="inp"></div></div>
+            <div class="actions"><span class="btn">重置</span><span class="btn" style="background:#0f6fb6;color:#fff;border-color:#0f6fb6;">应用</span></div>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="board">
+        <div class="title"><b>画板 D: 扫描详情页</b><span class="note">列表点击 push 进入，顶部图标返回</span></div>
+        <div class="phone"><div class="app">
+          <div class="status"><span>9:41</span><span>5G 87%</span></div>
+          <div class="nav"><span class="icon">‹</span><b>扫描详情</b><span style="width:34px;"></span></div>
+          <div class="content">
+            <div class="card detail-meta">
+              <b style="font-size:13px;color:#1f3346;">上海静安店</b><br>
+              联系人：王店长｜城市：上海｜时间：2026-04-15 10:10<br>
+              发长：中长｜发色：冷棕｜满意度：满意
+            </div>
+            <div class="card">
+              <div style="font-size:12px;color:#607282;margin-bottom:6px;">推荐配方结果</div>
+              <div class="formula">底色6度 + 3%双氧；6N:6A=2:1；停留28分钟。</div>
+            </div>
+          </div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
