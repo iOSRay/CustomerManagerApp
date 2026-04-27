@@ -1,4 +1,6 @@
 import SwiftUI
+import UIKit
+import Kingfisher
 
 private enum AppPage {
     case home
@@ -57,6 +59,168 @@ private struct DetailFormulaItem: Identifiable {
     let lab1: String
     let lab2: String
     let useAltSwatch: Bool
+    let previewAssets: [ScanRecordPreviewImage]
+}
+
+private extension UIView {
+    var owningViewController: UIViewController? {
+        sequence(first: self as UIResponder?, next: { $0?.next }).first { $0 is UIViewController } as? UIViewController
+    }
+}
+
+private extension UIApplication {
+    static func topViewController(
+        base: UIViewController? = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first(where: \.isKeyWindow)?
+            .rootViewController
+    ) -> UIViewController? {
+        if let nav = base as? UINavigationController {
+            return topViewController(base: nav.visibleViewController)
+        }
+        if let tab = base as? UITabBarController {
+            return topViewController(base: tab.selectedViewController)
+        }
+        if let presented = base?.presentedViewController {
+            return topViewController(base: presented)
+        }
+        return base
+    }
+}
+
+private extension ScanRecordPreviewImage {
+    func asPreviewItem(placeholder: UIImage?) -> ImagePreviewItem? {
+        guard let url else { return nil }
+        return ImagePreviewItem(
+            url: url,
+            placeholder: placeholder,
+            initialWidthRatio: initialWidthRatio.map { CGFloat($0) },
+            cacheKey: cacheKey,
+            prefersFitHeight: prefersFitHeight,
+            accessibilityLabel: accessibilityLabel
+        )
+    }
+}
+
+private final class DetailPreviewImageTileView: UIView {
+    private let placeholderView = UIView()
+    private let imageView = UIImageView()
+    private var previewItems: [ImagePreviewItem] = []
+    private var previewIndex: Int = 0
+
+    private lazy var tapRecognizer: UITapGestureRecognizer = {
+        let gesture = UITapGestureRecognizer(target: self, action: #selector(handleTapPreview))
+        return gesture
+    }()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        commonInit()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        commonInit()
+    }
+
+    private func commonInit() {
+        layer.cornerRadius = 2
+        clipsToBounds = true
+        isUserInteractionEnabled = true
+        addGestureRecognizer(tapRecognizer)
+
+        addSubview(placeholderView)
+        placeholderView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            placeholderView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            placeholderView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            placeholderView.topAnchor.constraint(equalTo: topAnchor),
+            placeholderView.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ])
+
+        addSubview(imageView)
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            imageView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            imageView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            imageView.topAnchor.constraint(equalTo: topAnchor),
+            imageView.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ])
+        imageView.contentMode = .scaleAspectFill
+        imageView.clipsToBounds = true
+    }
+
+    func configure(
+        assets: [ScanRecordPreviewImage],
+        displayIndex: Int,
+        alt: Bool
+    ) {
+        previewIndex = displayIndex
+        let colors: [UIColor] = alt
+            ? [UIColor(red: 0.85, green: 0.70, blue: 0.50, alpha: 1), UIColor(red: 0.80, green: 0.63, blue: 0.43, alpha: 1)]
+            : [UIColor(red: 0.88, green: 0.77, blue: 0.58, alpha: 1), UIColor(red: 0.83, green: 0.69, blue: 0.46, alpha: 1)]
+        placeholderView.layer.sublayers?.removeAll()
+        let gradient = CAGradientLayer()
+        gradient.frame = bounds
+        gradient.colors = colors.map(\.cgColor)
+        gradient.startPoint = CGPoint(x: 0.5, y: 0)
+        gradient.endPoint = CGPoint(x: 0.5, y: 1)
+        placeholderView.layer.insertSublayer(gradient, at: 0)
+        placeholderView.layer.borderWidth = 1
+        placeholderView.layer.borderColor = UIColor(red: 0.80, green: 0.72, blue: 0.61, alpha: 1).cgColor
+
+        let currentAsset = assets.indices.contains(displayIndex) ? assets[displayIndex] : nil
+        previewItems = assets.compactMap { $0.asPreviewItem(placeholder: nil) }
+        tapRecognizer.isEnabled = !previewItems.isEmpty
+
+        imageView.image = nil
+        imageView.kf.cancelDownloadTask()
+        if let currentURL = currentAsset?.url {
+            let resource: Resource? = {
+                if let cacheKey = currentAsset?.cacheKey, !cacheKey.isEmpty {
+                    return KF.ImageResource(downloadURL: currentURL, cacheKey: cacheKey)
+                }
+                return currentURL
+            }()
+            imageView.kf.setImage(
+                with: resource,
+                placeholder: nil,
+                options: [.cacheOriginalImage, .backgroundDecode]
+            )
+        }
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        placeholderView.layer.sublayers?.first?.frame = placeholderView.bounds
+    }
+
+    @objc private func handleTapPreview() {
+        guard !previewItems.isEmpty else { return }
+        guard let presenter = owningViewController ?? UIApplication.topViewController() else { return }
+
+        let vc = ImagePreviewViewController(
+            items: previewItems,
+            initialIndex: min(previewIndex, max(0, previewItems.count - 1)),
+            originViewProvider: { [weak self] _ in self?.imageView }
+        )
+        presenter.present(vc, animated: true)
+    }
+}
+
+private struct DetailPreviewImageTile: UIViewRepresentable {
+    let assets: [ScanRecordPreviewImage]
+    let displayIndex: Int
+    let alt: Bool
+
+    func makeUIView(context: Context) -> DetailPreviewImageTileView {
+        DetailPreviewImageTileView()
+    }
+
+    func updateUIView(_ uiView: DetailPreviewImageTileView, context: Context) {
+        uiView.configure(assets: assets, displayIndex: displayIndex, alt: alt)
+    }
 }
 
 struct DashboardView: View {
@@ -479,8 +643,8 @@ struct DashboardView: View {
 
     private func detailItemRow(item: DetailFormulaItem) -> some View {
         HStack(alignment: .top, spacing: 6) {
-            swatchWithLab(label: item.lab1, alt: item.useAltSwatch)
-            swatchWithLab(label: item.lab2, alt: item.useAltSwatch)
+            swatchWithLab(label: item.lab1, alt: item.useAltSwatch, assets: item.previewAssets, displayIndex: 0)
+            swatchWithLab(label: item.lab2, alt: item.useAltSwatch, assets: item.previewAssets, displayIndex: 1)
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .firstTextBaseline) {
@@ -511,7 +675,24 @@ struct DashboardView: View {
     }
 
     private func detailFormulaItems(for record: ScanRecord) -> [DetailFormulaItem] {
-        [
+        if let detailItems = record.detailItems, !detailItems.isEmpty {
+            return detailItems.map { item in
+                DetailFormulaItem(
+                    degree: item.degree,
+                    part: item.part,
+                    formula: item.formula,
+                    ratio: item.ratio,
+                    referenceId: item.referenceId,
+                    delta: item.delta,
+                    lab1: item.labValues.first ?? "",
+                    lab2: item.labValues.dropFirst().first ?? "",
+                    useAltSwatch: item.usesAlternateSwatch,
+                    previewAssets: item.previewImages
+                )
+            }
+        }
+
+        return [
             DetailFormulaItem(
                 degree: record.satisfied ? "8.5度" : "8.3度",
                 part: "根部 8.0cm",
@@ -521,7 +702,8 @@ struct DashboardView: View {
                 delta: record.satisfied ? "Delta: 0.32" : "Delta: 0.58",
                 lab1: record.satisfied ? "Lab: 62.1, 7.8, 18.4" : "Lab: 61.3, 8.4, 19.1",
                 lab2: record.satisfied ? "Lab: 63.4, 8.1, 17.9" : "Lab: 62.0, 8.8, 18.6",
-                useAltSwatch: false
+                useAltSwatch: false,
+                previewAssets: []
             ),
             DetailFormulaItem(
                 degree: record.satisfied ? "8.0度" : "7.8度",
@@ -532,27 +714,15 @@ struct DashboardView: View {
                 delta: record.satisfied ? "Delta: 0.47" : "Delta: 0.73",
                 lab1: record.satisfied ? "Lab: 59.6, 9.2, 16.5" : "Lab: 58.2, 9.8, 17.3",
                 lab2: record.satisfied ? "Lab: 60.1, 8.9, 15.8" : "Lab: 58.8, 9.5, 16.7",
-                useAltSwatch: true
+                useAltSwatch: true,
+                previewAssets: []
             )
         ]
     }
 
-    private func swatchWithLab(label: String, alt: Bool) -> some View {
+    private func swatchWithLab(label: String, alt: Bool, assets: [ScanRecordPreviewImage], displayIndex: Int) -> some View {
         VStack(spacing: 4) {
-            RoundedRectangle(cornerRadius: 2)
-                .fill(
-                    LinearGradient(
-                        colors: alt
-                            ? [Color(red: 0.85, green: 0.70, blue: 0.50), Color(red: 0.80, green: 0.63, blue: 0.43)]
-                            : [Color(red: 0.88, green: 0.77, blue: 0.58), Color(red: 0.83, green: 0.69, blue: 0.46)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .overlay {
-                    RoundedRectangle(cornerRadius: 2)
-                        .stroke(Color(red: 0.80, green: 0.72, blue: 0.61), lineWidth: 1)
-                }
+            DetailPreviewImageTile(assets: assets, displayIndex: displayIndex, alt: alt)
                 .frame(height: 88)
             Text(label)
                 .font(.system(size: 10))

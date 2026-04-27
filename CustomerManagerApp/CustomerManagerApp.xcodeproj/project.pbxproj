@@ -15,6 +15,10 @@
 		4B2B0D20EFE53E2C76E7002C /* CustomerManagerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B29669AF75A20DC701EFA75C /* CustomerManagerApp.swift */; };
 		5044988CDCC80D2B809A9056 /* ScanRecordDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE2D5C4CAE83A553BC08A0D4 /* ScanRecordDetailView.swift */; };
 		66A5DFB7E85491C65381DD64 /* DashboardStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DADF0555044BEA4FB863F3E /* DashboardStats.swift */; };
+		719B9F2D2F971EEC00186C60 /* ImagePreviewViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 719B9F2B2F971EEC00186C60 /* ImagePreviewViewController.swift */; };
+		719B9F2E2F971EEC00186C60 /* ZoomableImagePreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 719B9F2C2F971EEC00186C60 /* ZoomableImagePreviewView.swift */; };
+		719B9F2F2F971EEC00186C60 /* ImagePreviewItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 719B9F292F971EEC00186C60 /* ImagePreviewItem.swift */; };
+		719B9F302F971EEC00186C60 /* ImagePreviewPageCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 719B9F2A2F971EEC00186C60 /* ImagePreviewPageCell.swift */; };
 		7898297E134331DCEC57A252 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9D1962F7AA1A3EFD45D21D7 /* APIClient.swift */; };
 		7D6724588C776C04D9240B14 /* ScanRecordService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 241B8CFE83D7B668AC5ACE9C /* ScanRecordService.swift */; };
 		7EC7FD2B46C4D25B20506566 /* NetworkError.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8FE9C4E0759CFEE13F009D4 /* NetworkError.swift */; };
@@ -29,6 +33,7 @@
 		C5C8D4A18CA87C92EFFDC3F5 /* HTTPMethod.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA849CC4887AA4E5096696A6 /* HTTPMethod.swift */; };
 		D56E842B64095E03F6348415 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8F5D0F916A124A916CD9568 /* DashboardView.swift */; };
 		EABD76047874F51D4D20F9F0 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 47701D2D928178DD311D8E7A /* Foundation.framework */; };
+		F22100012F00000100000001 /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = F22100002F00000100000001 /* Kingfisher */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -41,6 +46,25 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		F22100022F00000100000001 /* XCRemoteSwiftPackageReference "Kingfisher" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/onevcat/Kingfisher.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		F22100002F00000100000001 /* Kingfisher */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F22100022F00000100000001 /* XCRemoteSwiftPackageReference "Kingfisher" */;
+			productName = Kingfisher;
+		};
+/* End XCSwiftPackageProductDependency section */
+
 /* Begin PBXFileReference section */
 		0A1B2A64352A7CFD0BF78940 /* RootView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RootView.swift; path = CustomerManagerApp/App/RootView.swift; sourceTree = "<group>"; };
 		0DADF0555044BEA4FB863F3E /* DashboardStats.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DashboardStats.swift; path = CustomerManagerApp/Shared/Models/DashboardStats.swift; sourceTree = "<group>"; };
@@ -52,6 +76,10 @@
 		5FFEBF8D6BF868B933FEF794 /* APIEndpoint.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = APIEndpoint.swift; path = CustomerManagerApp/Core/Networking/APIEndpoint.swift; sourceTree = "<group>"; };
 		6092399A205FA500B9BCFB78 /* ScanRecord.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ScanRecord.swift; path = CustomerManagerApp/Shared/Models/ScanRecord.swift; sourceTree = "<group>"; };
 		61C458244321D49FCD80CC55 /* AppConfig.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AppConfig.swift; path = CustomerManagerApp/Core/Config/AppConfig.swift; sourceTree = "<group>"; };
+		719B9F292F971EEC00186C60 /* ImagePreviewItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerManagerApp/Features/Preview/ImagePreviewItem.swift; sourceTree = "<group>"; };
+		719B9F2A2F971EEC00186C60 /* ImagePreviewPageCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerManagerApp/Features/Preview/ImagePreviewPageCell.swift; sourceTree = "<group>"; };
+		719B9F2B2F971EEC00186C60 /* ImagePreviewViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerManagerApp/Features/Preview/ImagePreviewViewController.swift; sourceTree = "<group>"; };
+		719B9F2C2F971EEC00186C60 /* ZoomableImagePreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerManagerApp/Features/Preview/ZoomableImagePreviewView.swift; sourceTree = "<group>"; };
 		968B03F952BBAF35EADB63FC /* CustomerManagerApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CustomerManagerApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9DE00F44F011AC685C7E97AB /* AppContainer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AppContainer.swift; path = CustomerManagerApp/App/AppContainer.swift; sourceTree = "<group>"; };
 		B29669AF75A20DC701EFA75C /* CustomerManagerApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CustomerManagerApp.swift; path = CustomerManagerApp/App/CustomerManagerApp.swift; sourceTree = "<group>"; };
@@ -80,6 +108,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F22100012F00000100000001 /* Kingfisher in Frameworks */,
 				EABD76047874F51D4D20F9F0 /* Foundation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -90,6 +119,10 @@
 		22918A1E9A6CD34F215FDCF5 /* CustomerManagerApp */ = {
 			isa = PBXGroup;
 			children = (
+				719B9F292F971EEC00186C60 /* ImagePreviewItem.swift */,
+				719B9F2A2F971EEC00186C60 /* ImagePreviewPageCell.swift */,
+				719B9F2B2F971EEC00186C60 /* ImagePreviewViewController.swift */,
+				719B9F2C2F971EEC00186C60 /* ZoomableImagePreviewView.swift */,
 				9DE00F44F011AC685C7E97AB /* AppContainer.swift */,
 				B29669AF75A20DC701EFA75C /* CustomerManagerApp.swift */,
 				0A1B2A64352A7CFD0BF78940 /* RootView.swift */,
@@ -172,6 +205,9 @@
 			dependencies = (
 			);
 			name = CustomerManagerApp;
+			packageProductDependencies = (
+				F22100002F00000100000001 /* Kingfisher */,
+			);
 			productName = CustomerManagerApp;
 			productReference = 968B03F952BBAF35EADB63FC /* CustomerManagerApp.app */;
 			productType = "com.apple.product-type.application";
@@ -221,6 +257,9 @@
 				Base,
 			);
 			mainGroup = F3BC5B9F90B8567123CC6165;
+			packageReferences = (
+				F22100022F00000100000001 /* XCRemoteSwiftPackageReference "Kingfisher" */,
+			);
 			productRefGroup = 3236AC7E94522DD8ED7DCB97 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -277,6 +316,10 @@
 				37CD58B4DD4C051AA93CECA3 /* ScanRecordListView.swift in Sources */,
 				3A8DE5FBB16130674AADEDF9 /* ScanRecordListViewModel.swift in Sources */,
 				7D6724588C776C04D9240B14 /* ScanRecordService.swift in Sources */,
+				719B9F2D2F971EEC00186C60 /* ImagePreviewViewController.swift in Sources */,
+				719B9F2E2F971EEC00186C60 /* ZoomableImagePreviewView.swift in Sources */,
+				719B9F2F2F971EEC00186C60 /* ImagePreviewItem.swift in Sources */,
+				719B9F302F971EEC00186C60 /* ImagePreviewPageCell.swift in Sources */,
 				66A5DFB7E85491C65381DD64 /* DashboardStats.swift in Sources */,
 				1E8AA45CDCB4C9A3E0A8CC5E /* ScanRecord.swift in Sources */,
 				C0058327E08E55B3D26B8936 /* PreviewMocks.swift in Sources */,
