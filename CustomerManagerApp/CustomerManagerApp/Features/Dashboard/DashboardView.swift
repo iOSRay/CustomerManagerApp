@@ -255,6 +255,9 @@ struct DashboardView: View {
     @FocusState private var filterFocusedField: FilterField?
 
     private let recordPageSize = 12
+    private let detailContentInset: CGFloat = 10
+    private let detailCardInnerInset: CGFloat = 10
+    private let detailPhotoWidth: CGFloat = 160
 
     init(dashboardViewModel: DashboardViewModel, scanViewModel: ScanRecordListViewModel) {
         _dashboardViewModel = StateObject(wrappedValue: dashboardViewModel)
@@ -273,6 +276,7 @@ struct DashboardView: View {
                     content
                 }
                 .padding(.horizontal, sideInset)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .background(Color(red: 0.95, green: 0.97, blue: 0.98))
 
                 if showFilterPopup, page == .records {
@@ -574,38 +578,39 @@ struct DashboardView: View {
     }
 
     private var detailContent: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        GeometryReader { geo in
             if let record = selectedRecord {
+                let cardHeight = max(236 + detailCardInnerInset * 2, geo.size.height - detailContentInset * 2)
+                let innerHeight = cardHeight - detailCardInnerInset * 2
+
                 plainCard {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(record.deviceId ?? "hair_item_\(record.id.uuidString.prefix(4))")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(Color(red: 0.15, green: 0.22, blue: 0.3))
+                    HStack(spacing: 6) {
+                        detailMainPhoto(color: record.hairColor)
+                            .frame(width: detailPhotoWidth, height: innerHeight)
 
-                        HStack(spacing: 6) {
-                            detailMainPhoto(color: record.hairColor)
-                                .frame(width: 160, height: 236)
+                        ScrollView(showsIndicators: true) {
+                            VStack(spacing: 0) {
+                                let items = detailFormulaItems(for: record)
+                                let rowHeight = innerHeight / 2
+                                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                                    detailItemRow(item: item, rowHeight: rowHeight)
+                                        .frame(height: rowHeight, alignment: .top)
 
-                            ScrollView(showsIndicators: true) {
-                                VStack(spacing: 0) {
-                                    let items = detailFormulaItems(for: record)
-                                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                                        detailItemRow(item: item)
-
-                                        if index < items.count - 1 {
-                                            Divider()
-                                                .overlay(Color(red: 0.93, green: 0.95, blue: 0.97))
-                                        }
+                                    if index < items.count - 1 {
+                                        Divider()
+                                            .overlay(Color(red: 0.93, green: 0.95, blue: 0.97))
                                     }
                                 }
                             }
-                            .frame(maxWidth: .infinity, maxHeight: 236, alignment: .top)
                         }
+                        .frame(height: innerHeight)
+                        .frame(maxWidth: .infinity, alignment: .top)
                     }
                 }
+                .frame(height: cardHeight)
+                .padding(detailContentInset)
             }
         }
-        .padding(10)
     }
 
     private func detailMainPhoto(color: String) -> some View {
@@ -641,10 +646,12 @@ struct DashboardView: View {
         }
     }
 
-    private func detailItemRow(item: DetailFormulaItem) -> some View {
-        HStack(alignment: .top, spacing: 6) {
-            swatchWithLab(label: item.lab1, alt: item.useAltSwatch, assets: item.previewAssets, displayIndex: 0)
-            swatchWithLab(label: item.lab2, alt: item.useAltSwatch, assets: item.previewAssets, displayIndex: 1)
+    private func detailItemRow(item: DetailFormulaItem, rowHeight: CGFloat) -> some View {
+        let swatchImageHeight = max(88, rowHeight - 26)
+
+        return HStack(alignment: .top, spacing: 6) {
+            swatchWithLab(label: item.lab1, alt: item.useAltSwatch, assets: item.previewAssets, displayIndex: 0, imageHeight: swatchImageHeight)
+            swatchWithLab(label: item.lab2, alt: item.useAltSwatch, assets: item.previewAssets, displayIndex: 1, imageHeight: swatchImageHeight)
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .firstTextBaseline) {
@@ -720,10 +727,10 @@ struct DashboardView: View {
         ]
     }
 
-    private func swatchWithLab(label: String, alt: Bool, assets: [ScanRecordPreviewImage], displayIndex: Int) -> some View {
+    private func swatchWithLab(label: String, alt: Bool, assets: [ScanRecordPreviewImage], displayIndex: Int, imageHeight: CGFloat) -> some View {
         VStack(spacing: 4) {
             DetailPreviewImageTile(assets: assets, displayIndex: displayIndex, alt: alt)
-                .frame(height: 88)
+                .frame(height: imageHeight)
             Text(label)
                 .font(.system(size: 10))
                 .foregroundStyle(Color(red: 0.41, green: 0.49, blue: 0.56))
@@ -1008,8 +1015,16 @@ struct DashboardView: View {
         switch page {
         case .home: return "统计"
         case .records: return "扫描记录"
-        case .detail: return "扫描详情"
+        case .detail:
+            if let selectedRecord {
+                return detailTitle(for: selectedRecord)
+            }
+            return "扫描详情"
         }
+    }
+
+    private func detailTitle(for record: ScanRecord) -> String {
+        record.deviceId ?? "hair_item_\(record.id.uuidString.prefix(4))"
     }
 
     private var statsPaneIndex: Int {
