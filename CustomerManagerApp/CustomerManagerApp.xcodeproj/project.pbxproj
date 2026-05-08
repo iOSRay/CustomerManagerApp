@@ -3,11 +3,12 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 46;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		1E8AA45CDCB4C9A3E0A8CC5E /* ScanRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6092399A205FA500B9BCFB78 /* ScanRecord.swift */; };
+		25B10AA90A1B4F37A75A7D77 /* LoadingHUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = E47D89097C2B4C7EACB62E5E /* LoadingHUD.swift */; };
 		2C54E328ECB20ACC4F8B959F /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61C458244321D49FCD80CC55 /* AppConfig.swift */; };
 		37CD58B4DD4C051AA93CECA3 /* ScanRecordListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA2006040E7718AF75B65324 /* ScanRecordListView.swift */; };
 		39C0BF79179EF32EFEEEF8DB /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 47701D2D928178DD311D8E7A /* Foundation.framework */; };
@@ -15,10 +16,10 @@
 		4B2B0D20EFE53E2C76E7002C /* CustomerManagerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B29669AF75A20DC701EFA75C /* CustomerManagerApp.swift */; };
 		5044988CDCC80D2B809A9056 /* ScanRecordDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE2D5C4CAE83A553BC08A0D4 /* ScanRecordDetailView.swift */; };
 		66A5DFB7E85491C65381DD64 /* DashboardStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DADF0555044BEA4FB863F3E /* DashboardStats.swift */; };
-		719B9F2D2F971EEC00186C60 /* ImagePreviewViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 719B9F2B2F971EEC00186C60 /* ImagePreviewViewController.swift */; };
-		719B9F2E2F971EEC00186C60 /* ZoomableImagePreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 719B9F2C2F971EEC00186C60 /* ZoomableImagePreviewView.swift */; };
-		719B9F2F2F971EEC00186C60 /* ImagePreviewItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 719B9F292F971EEC00186C60 /* ImagePreviewItem.swift */; };
-		719B9F302F971EEC00186C60 /* ImagePreviewPageCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 719B9F2A2F971EEC00186C60 /* ImagePreviewPageCell.swift */; };
+		719B9F2D2F971EEC00186C60 /* CustomerManagerApp/Features/Preview/ImagePreviewViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 719B9F2B2F971EEC00186C60 /* CustomerManagerApp/Features/Preview/ImagePreviewViewController.swift */; };
+		719B9F2E2F971EEC00186C60 /* CustomerManagerApp/Features/Preview/ZoomableImagePreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 719B9F2C2F971EEC00186C60 /* CustomerManagerApp/Features/Preview/ZoomableImagePreviewView.swift */; };
+		719B9F2F2F971EEC00186C60 /* CustomerManagerApp/Features/Preview/ImagePreviewItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 719B9F292F971EEC00186C60 /* CustomerManagerApp/Features/Preview/ImagePreviewItem.swift */; };
+		719B9F302F971EEC00186C60 /* CustomerManagerApp/Features/Preview/ImagePreviewPageCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 719B9F2A2F971EEC00186C60 /* CustomerManagerApp/Features/Preview/ImagePreviewPageCell.swift */; };
 		7898297E134331DCEC57A252 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9D1962F7AA1A3EFD45D21D7 /* APIClient.swift */; };
 		7D6724588C776C04D9240B14 /* ScanRecordService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 241B8CFE83D7B668AC5ACE9C /* ScanRecordService.swift */; };
 		7EC7FD2B46C4D25B20506566 /* NetworkError.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8FE9C4E0759CFEE13F009D4 /* NetworkError.swift */; };
@@ -46,25 +47,6 @@
 		};
 /* End PBXContainerItemProxy section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		F22100022F00000100000001 /* XCRemoteSwiftPackageReference "Kingfisher" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/onevcat/Kingfisher.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 8.0.0;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		F22100002F00000100000001 /* Kingfisher */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = F22100022F00000100000001 /* XCRemoteSwiftPackageReference "Kingfisher" */;
-			productName = Kingfisher;
-		};
-/* End XCSwiftPackageProductDependency section */
-
 /* Begin PBXFileReference section */
 		0A1B2A64352A7CFD0BF78940 /* RootView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RootView.swift; path = CustomerManagerApp/App/RootView.swift; sourceTree = "<group>"; };
 		0DADF0555044BEA4FB863F3E /* DashboardStats.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DashboardStats.swift; path = CustomerManagerApp/Shared/Models/DashboardStats.swift; sourceTree = "<group>"; };
@@ -76,10 +58,10 @@
 		5FFEBF8D6BF868B933FEF794 /* APIEndpoint.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = APIEndpoint.swift; path = CustomerManagerApp/Core/Networking/APIEndpoint.swift; sourceTree = "<group>"; };
 		6092399A205FA500B9BCFB78 /* ScanRecord.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ScanRecord.swift; path = CustomerManagerApp/Shared/Models/ScanRecord.swift; sourceTree = "<group>"; };
 		61C458244321D49FCD80CC55 /* AppConfig.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AppConfig.swift; path = CustomerManagerApp/Core/Config/AppConfig.swift; sourceTree = "<group>"; };
-		719B9F292F971EEC00186C60 /* ImagePreviewItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerManagerApp/Features/Preview/ImagePreviewItem.swift; sourceTree = "<group>"; };
-		719B9F2A2F971EEC00186C60 /* ImagePreviewPageCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerManagerApp/Features/Preview/ImagePreviewPageCell.swift; sourceTree = "<group>"; };
-		719B9F2B2F971EEC00186C60 /* ImagePreviewViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerManagerApp/Features/Preview/ImagePreviewViewController.swift; sourceTree = "<group>"; };
-		719B9F2C2F971EEC00186C60 /* ZoomableImagePreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerManagerApp/Features/Preview/ZoomableImagePreviewView.swift; sourceTree = "<group>"; };
+		719B9F292F971EEC00186C60 /* CustomerManagerApp/Features/Preview/ImagePreviewItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerManagerApp/Features/Preview/ImagePreviewItem.swift; sourceTree = "<group>"; };
+		719B9F2A2F971EEC00186C60 /* CustomerManagerApp/Features/Preview/ImagePreviewPageCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerManagerApp/Features/Preview/ImagePreviewPageCell.swift; sourceTree = "<group>"; };
+		719B9F2B2F971EEC00186C60 /* CustomerManagerApp/Features/Preview/ImagePreviewViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerManagerApp/Features/Preview/ImagePreviewViewController.swift; sourceTree = "<group>"; };
+		719B9F2C2F971EEC00186C60 /* CustomerManagerApp/Features/Preview/ZoomableImagePreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomerManagerApp/Features/Preview/ZoomableImagePreviewView.swift; sourceTree = "<group>"; };
 		968B03F952BBAF35EADB63FC /* CustomerManagerApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CustomerManagerApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9DE00F44F011AC685C7E97AB /* AppContainer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AppContainer.swift; path = CustomerManagerApp/App/AppContainer.swift; sourceTree = "<group>"; };
 		B29669AF75A20DC701EFA75C /* CustomerManagerApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CustomerManagerApp.swift; path = CustomerManagerApp/App/CustomerManagerApp.swift; sourceTree = "<group>"; };
@@ -88,6 +70,7 @@
 		C8FE9C4E0759CFEE13F009D4 /* NetworkError.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NetworkError.swift; path = CustomerManagerApp/Core/Networking/NetworkError.swift; sourceTree = "<group>"; };
 		D8F5D0F916A124A916CD9568 /* DashboardView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DashboardView.swift; path = CustomerManagerApp/Features/Dashboard/DashboardView.swift; sourceTree = "<group>"; };
 		D90D24C09C4FED00879EBFA5 /* AnyEncodable.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AnyEncodable.swift; path = CustomerManagerApp/Core/Networking/AnyEncodable.swift; sourceTree = "<group>"; };
+		E47D89097C2B4C7EACB62E5E /* LoadingHUD.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = LoadingHUD.swift; path = CustomerManagerApp/Shared/Components/LoadingHUD.swift; sourceTree = "<group>"; };
 		EA849CC4887AA4E5096696A6 /* HTTPMethod.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HTTPMethod.swift; path = CustomerManagerApp/Core/Networking/HTTPMethod.swift; sourceTree = "<group>"; };
 		F50805B3D6DDD474F4DE5DEF /* DashboardViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DashboardViewModel.swift; path = CustomerManagerApp/Features/Dashboard/DashboardViewModel.swift; sourceTree = "<group>"; };
 		FA2006040E7718AF75B65324 /* ScanRecordListView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ScanRecordListView.swift; path = CustomerManagerApp/Features/ScanRecords/ScanRecordListView.swift; sourceTree = "<group>"; };
@@ -119,10 +102,10 @@
 		22918A1E9A6CD34F215FDCF5 /* CustomerManagerApp */ = {
 			isa = PBXGroup;
 			children = (
-				719B9F292F971EEC00186C60 /* ImagePreviewItem.swift */,
-				719B9F2A2F971EEC00186C60 /* ImagePreviewPageCell.swift */,
-				719B9F2B2F971EEC00186C60 /* ImagePreviewViewController.swift */,
-				719B9F2C2F971EEC00186C60 /* ZoomableImagePreviewView.swift */,
+				719B9F292F971EEC00186C60 /* CustomerManagerApp/Features/Preview/ImagePreviewItem.swift */,
+				719B9F2A2F971EEC00186C60 /* CustomerManagerApp/Features/Preview/ImagePreviewPageCell.swift */,
+				719B9F2B2F971EEC00186C60 /* CustomerManagerApp/Features/Preview/ImagePreviewViewController.swift */,
+				719B9F2C2F971EEC00186C60 /* CustomerManagerApp/Features/Preview/ZoomableImagePreviewView.swift */,
 				9DE00F44F011AC685C7E97AB /* AppContainer.swift */,
 				B29669AF75A20DC701EFA75C /* CustomerManagerApp.swift */,
 				0A1B2A64352A7CFD0BF78940 /* RootView.swift */,
@@ -141,6 +124,7 @@
 				241B8CFE83D7B668AC5ACE9C /* ScanRecordService.swift */,
 				0DADF0555044BEA4FB863F3E /* DashboardStats.swift */,
 				6092399A205FA500B9BCFB78 /* ScanRecord.swift */,
+				E47D89097C2B4C7EACB62E5E /* LoadingHUD.swift */,
 				417381EF9CE210C60DF2C04F /* PreviewMocks.swift */,
 			);
 			name = CustomerManagerApp;
@@ -316,12 +300,13 @@
 				37CD58B4DD4C051AA93CECA3 /* ScanRecordListView.swift in Sources */,
 				3A8DE5FBB16130674AADEDF9 /* ScanRecordListViewModel.swift in Sources */,
 				7D6724588C776C04D9240B14 /* ScanRecordService.swift in Sources */,
-				719B9F2D2F971EEC00186C60 /* ImagePreviewViewController.swift in Sources */,
-				719B9F2E2F971EEC00186C60 /* ZoomableImagePreviewView.swift in Sources */,
-				719B9F2F2F971EEC00186C60 /* ImagePreviewItem.swift in Sources */,
-				719B9F302F971EEC00186C60 /* ImagePreviewPageCell.swift in Sources */,
+				719B9F2D2F971EEC00186C60 /* CustomerManagerApp/Features/Preview/ImagePreviewViewController.swift in Sources */,
+				719B9F2E2F971EEC00186C60 /* CustomerManagerApp/Features/Preview/ZoomableImagePreviewView.swift in Sources */,
+				719B9F2F2F971EEC00186C60 /* CustomerManagerApp/Features/Preview/ImagePreviewItem.swift in Sources */,
+				719B9F302F971EEC00186C60 /* CustomerManagerApp/Features/Preview/ImagePreviewPageCell.swift in Sources */,
 				66A5DFB7E85491C65381DD64 /* DashboardStats.swift in Sources */,
 				1E8AA45CDCB4C9A3E0A8CC5E /* ScanRecord.swift in Sources */,
+				25B10AA90A1B4F37A75A7D77 /* LoadingHUD.swift in Sources */,
 				C0058327E08E55B3D26B8936 /* PreviewMocks.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -353,7 +338,10 @@
 				INFOPLIST_KEY_UIRequiresFullScreen = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
 				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.davincidye.CustomerManagerApp;
 				SDKROOT = iphoneos;
@@ -445,7 +433,8 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
@@ -465,7 +454,10 @@
 				INFOPLIST_KEY_UIRequiresFullScreen = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
 				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.davincidye.CustomerManagerApp;
 				SDKROOT = iphoneos;
@@ -567,6 +559,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		F22100022F00000100000001 /* XCRemoteSwiftPackageReference "Kingfisher" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/onevcat/Kingfisher.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		F22100002F00000100000001 /* Kingfisher */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F22100022F00000100000001 /* XCRemoteSwiftPackageReference "Kingfisher" */;
+			productName = Kingfisher;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 4670DAC1DDDE7EEA805F1D73 /* Project object */;
 }

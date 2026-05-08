@@ -9,28 +9,35 @@ final class APIClient: APIClientProtocol {
     private let session: URLSession
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
+    private let logsEnabled: Bool
 
     init(
         baseURL: URL,
         session: URLSession = .shared,
         encoder: JSONEncoder = .init(),
-        decoder: JSONDecoder = .init()
+        decoder: JSONDecoder = .init(),
+        logsEnabled: Bool = true
     ) {
         self.baseURL = baseURL
         self.session = session
         self.encoder = encoder
         self.decoder = decoder
+        self.logsEnabled = logsEnabled
         self.decoder.dateDecodingStrategy = .iso8601
     }
 
     func request<T: Decodable>(_ endpoint: APIEndpoint, as type: T.Type) async throws -> T {
         let request = try buildRequest(endpoint)
+        logRequest(request)
 
         do {
             let (data, response) = try await session.data(for: request)
             guard let httpResponse = response as? HTTPURLResponse else {
+                logInvalidResponse(data: data)
                 throw NetworkError.invalidResponse
             }
+
+            logResponse(httpResponse, data: data)
 
             guard 200..<300 ~= httpResponse.statusCode else {
                 let message = String(data: data, encoding: .utf8)
@@ -38,14 +45,17 @@ final class APIClient: APIClientProtocol {
             }
 
             do {
-                return try decoder.decode(T.self, from: data)
+                return try decodeResponse(T.self, from: data)
             } catch {
                 throw NetworkError.decodingFailed
             }
         } catch let error as NetworkError {
+            logError(error, request: request)
             throw error
         } catch {
-            throw NetworkError.transport(error)
+            let networkError = NetworkError.transport(error)
+            logError(networkError, request: request)
+            throw networkError
         }
     }
 
@@ -56,6 +66,7 @@ final class APIClient: APIClientProtocol {
 
         if !endpoint.queryItems.isEmpty {
             components.queryItems = endpoint.queryItems
+            components.percentEncodedQuery = components.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B")
         }
 
         guard let url = components.url else {
@@ -64,6 +75,7 @@ final class APIClient: APIClientProtocol {
 
         var request = URLRequest(url: url)
         request.httpMethod = endpoint.method.rawValue
+        request.timeoutInterval = 15
         request.setValue("application/json", forHTTPHeaderField: "Accept")
 
         for (key, value) in endpoint.headers {
@@ -76,5 +88,107 @@ final class APIClient: APIClientProtocol {
         }
 
         return request
+    }
+
+    private func decodeResponse<T: Decodable>(_ type: T.Type, from data: Data) throws -> T {
+        do {
+            let envelope = try decoder.decode(APIResponseEnvelope<T>.self, from: data)
+            return envelope.data
+        } catch {
+            return try decoder.decode(T.self, from: data)
+        }
+    }
+
+    private func logRequest(_ request: URLRequest) {
+        guard logsEnabled else { return }
+        print("API Request: \(request.httpMethod ?? "GET") \(request.url?.absoluteString ?? "<invalid-url>")")
+
+        if let headers = request.allHTTPHeaderFields, !headers.isEmpty {
+            print("API Request Headers: \(redacted(headers))")
+        }
+
+        if let body = request.httpBody, !body.isEmpty {
+            print("API Request Body: \(body.redactedPreviewString)")
+        }
+    }
+
+    private func logResponse(_ response: HTTPURLResponse, data: Data) {
+        guard logsEnabled else { return }
+        print("API Response: \(response.statusCode) \(response.url?.absoluteString ?? "<invalid-url>")")
+
+        if !data.isEmpty {
+            print("API Response Body: \(data.redactedPreviewString)")
+        }
+    }
+
+    private func logInvalidResponse(data: Data) {
+        guard logsEnabled else { return }
+        print("API Response: invalid response")
+
+        if !data.isEmpty {
+            print("API Response Body: \(data.redactedPreviewString)")
+        }
+    }
+
+    private func logError(_ error: Error, request: URLRequest) {
+        guard logsEnabled else { return }
+        print("API Error: \(request.httpMethod ?? "GET") \(request.url?.absoluteString ?? "<invalid-url>") -> \(error.localizedDescription)")
+    }
+
+    private func redacted(_ headers: [String: String]) -> [String: String] {
+        headers.reduce(into: [:]) { result, item in
+            if item.key.lowercased() == "authorization" {
+                result[item.key] = "<redacted>"
+            } else {
+                result[item.key] = item.value
+            }
+        }
+    }
+}
+
+private struct APIResponseEnvelope<T: Decodable>: Decodable {
+    let data: T
+}
+
+private extension Data {
+    var redactedPreviewString: String {
+        if let redacted = redactedJSONPreviewString {
+            return redacted
+        }
+
+        let limit = 4_000
+        let text = String(data: prefix(limit), encoding: .utf8) ?? "<\(count) bytes>"
+        return count > limit ? "\(text)...<truncated \(count - limit) bytes>" : text
+    }
+
+    var redactedJSONPreviewString: String? {
+        guard let object = try? JSONSerialization.jsonObject(with: self) else { return nil }
+        let redacted = Self.redactSensitiveValues(in: object)
+        guard let data = try? JSONSerialization.data(withJSONObject: redacted, options: [.prettyPrinted, .sortedKeys]) else {
+            return nil
+        }
+
+        let limit = 4_000
+        let text = String(data: data.prefix(limit), encoding: .utf8) ?? "<\(count) bytes>"
+        return data.count > limit ? "\(text)...<truncated \(data.count - limit) bytes>" : text
+    }
+
+    static func redactSensitiveValues(in value: Any) -> Any {
+        if let dictionary = value as? [String: Any] {
+            return dictionary.reduce(into: [String: Any]()) { result, item in
+                let key = item.key.lowercased()
+                if key.contains("password") || key.contains("token") || key == "authorization" {
+                    result[item.key] = "<redacted>"
+                } else {
+                    result[item.key] = redactSensitiveValues(in: item.value)
+                }
+            }
+        }
+
+        if let array = value as? [Any] {
+            return array.map { redactSensitiveValues(in: $0) }
+        }
+
+        return value
     }
 }

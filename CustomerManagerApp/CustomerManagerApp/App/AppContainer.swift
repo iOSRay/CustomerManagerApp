@@ -18,8 +18,9 @@ final class AppContainer {
     static let live: AppContainer = {
         let config = AppConfig.default
         let client = APIClient(baseURL: config.baseURL)
-        let statsService = StatsService(apiClient: client)
-        let scanRecordService = ScanRecordService(apiClient: client)
+        let authService = AdminAuthService(apiClient: client, credentials: config.adminCredentials)
+        let statsService = StatsService(apiClient: client, authService: authService)
+        let scanRecordService = ScanRecordService(apiClient: client, authService: authService)
         return AppContainer(apiClient: client, statsService: statsService, scanRecordService: scanRecordService)
     }()
 }

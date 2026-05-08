@@ -19,7 +19,7 @@ struct ScanRecordListView: View {
 
             switch viewModel.state {
             case .idle, .loading:
-                HStack { Spacer(); ProgressView(); Spacer() }
+                EmptyView()
             case let .failed(message):
                 Text(message).foregroundStyle(.red)
             case let .loaded(records):
@@ -72,5 +72,6 @@ struct ScanRecordListView: View {
         .task {
             await viewModel.load()
         }
+        .loadingHUD(viewModel.isRequesting)
     }
 }

@@ -14,11 +14,11 @@ private enum StatsPane {
     case custom
 }
 
-private enum QuickRange: Int, CaseIterable {
-    case h24 = 24
-    case h48 = 48
-    case h72 = 72
-    case week = 168
+private enum QuickRange: CaseIterable {
+    case h24
+    case h48
+    case h72
+    case week
 
     var title: String {
         switch self {
@@ -28,24 +28,21 @@ private enum QuickRange: Int, CaseIterable {
         case .week: return "1周"
         }
     }
+
+    var statsPreset: UsageStatsQuery.Preset {
+        switch self {
+        case .h24: return .h24
+        case .h48: return .h48
+        case .h72: return .h72
+        case .week: return .d7
+        }
+    }
 }
 
 private enum FilterField: Hashable {
     case store
     case city
     case contact
-}
-
-private struct RangeMetrics {
-    let totalUses: Int
-    let activeDevices: Int
-    let soldDevices: Int
-
-    var usageRateText: String {
-        guard soldDevices > 0 else { return "0%" }
-        let value = Double(activeDevices) / Double(soldDevices) * 100
-        return "\(Int(value.rounded()))%"
-    }
 }
 
 private struct DetailFormulaItem: Identifiable {
@@ -250,11 +247,15 @@ struct DashboardView: View {
     @State private var selectedRecord: ScanRecord?
     @State private var customStart = Date().addingTimeInterval(-24 * 3600)
     @State private var customEnd = Date()
-    @State private var visibleRecordCount = 12
+    @State private var recordStart = Date().addingTimeInterval(-24 * 3600)
+    @State private var recordEnd = Date()
+    @State private var usesRecordDateFilter = false
+    @State private var visibleRecordCount = 20
     @State private var isLoadingMoreRecords = false
+    @State private var recordReloadTask: Task<Void, Never>?
     @FocusState private var filterFocusedField: FilterField?
 
-    private let recordPageSize = 12
+    private let recordPageSize = 20
     private let detailContentInset: CGFloat = 10
     private let detailCardInnerInset: CGFloat = 10
     private let detailPhotoWidth: CGFloat = 160
@@ -286,8 +287,8 @@ struct DashboardView: View {
             }
             .task {
                 await dashboardViewModel.load()
-                await reloadRecords()
             }
+            .loadingHUD(isShowingRequestHUD)
         }
     }
 
@@ -331,6 +332,7 @@ struct DashboardView: View {
         case .home:
             topActionButton(title: "记录") {
                 page = .records
+                Task { await loadRecordsIfNeeded() }
             }
         case .records:
             topActionButton(title: "筛选") {
@@ -374,7 +376,9 @@ struct DashboardView: View {
                     options: ["卖出至今", "过去时段", "任意时间"],
                     selectedIndex: statsPaneIndex,
                     onTap: { index in
+                        guard index != statsPaneIndex else { return }
                         statsPane = [StatsPane.all, .quick, .custom][index]
+                        Task { await reloadStatsForCurrentSelection() }
                     }
                 )
 
@@ -392,20 +396,7 @@ struct DashboardView: View {
     }
 
     private var statsCardAll: some View {
-        Group {
-            if case let .loaded(stats) = dashboardViewModel.state {
-                kpiGridCard(items: [
-                    ("卖出设备总数", "\(stats.soldDevices)"),
-                    ("总使用次数", "\(stats.totalUsages)"),
-                    ("至少使用过1次设备数", "\(stats.activeDevices)"),
-                    ("使用率", "\(Int((stats.usageRate * 100).rounded()))%")
-                ])
-            } else if case .loading = dashboardViewModel.state {
-                loadingCard
-            } else {
-                kpiGridCard(items: [])
-            }
-        }
+        statsCardCurrent(showSoldDevices: true)
     }
 
     private var statsCardQuick: some View {
@@ -414,16 +405,14 @@ struct DashboardView: View {
                 options: QuickRange.allCases.map(\.title),
                 selectedIndex: QuickRange.allCases.firstIndex(of: quickRange) ?? 0,
                 onTap: { index in
-                    quickRange = QuickRange.allCases[index]
+                    let selectedRange = QuickRange.allCases[index]
+                    guard selectedRange != quickRange else { return }
+                    quickRange = selectedRange
+                    Task { await dashboardViewModel.load(.preset(quickRange.statsPreset)) }
                 }
             )
 
-            let metrics = rangeMetrics(hours: quickRange.rawValue)
-            kpiGridCard(items: [
-                ("总使用次数", "\(metrics.totalUses)"),
-                ("使用设备数", "\(metrics.activeDevices)"),
-                ("使用率", metrics.usageRateText)
-            ])
+            statsCardCurrent(showSoldDevices: false)
         }
     }
 
@@ -455,29 +444,50 @@ struct DashboardView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                popupButton("计算", primary: true) {}
+                popupButton("计算", primary: true) {
+                    Task { await dashboardViewModel.load(.custom(start: customStart, end: customEnd)) }
+                }
                     .frame(minWidth: 72)
             }
 
-            let metrics = customRangeMetrics
-            kpiGridCard(items: [
-                ("总使用次数", "\(metrics.totalUses)"),
-                ("使用设备数", "\(metrics.activeDevices)"),
-                ("使用率", metrics.usageRateText)
-            ])
+            statsCardCurrent(showSoldDevices: false)
         }
+    }
+
+    private func statsCardCurrent(showSoldDevices: Bool) -> some View {
+        Group {
+            if case let .loaded(stats) = dashboardViewModel.state {
+                kpiGridCard(items: statsItems(stats, showSoldDevices: showSoldDevices))
+            } else if case .loading = dashboardViewModel.state {
+                kpiGridCard(items: [])
+            } else {
+                kpiGridCard(items: [])
+            }
+        }
+    }
+
+    private func statsItems(_ stats: DashboardStats, showSoldDevices: Bool) -> [(String, String)] {
+        var items: [(String, String)] = []
+        if showSoldDevices {
+            items.append(("卖出设备总数", "\(stats.soldDevices)"))
+        }
+        items.append(contentsOf: [
+            ("总使用次数", "\(stats.totalUsages)"),
+            (showSoldDevices ? "至少使用过1次设备数" : "使用设备数", "\(stats.activeDevices)"),
+            ("使用率", "\(Int((stats.usageRate * 100).rounded()))%")
+        ])
+        return items
     }
 
     private var recordsContent: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 8) {
                 if case .loading = scanViewModel.state {
-                    loadingCard
+                    EmptyView()
                 } else {
                     ForEach(displayedRecords) { record in
                         Button {
-                            selectedRecord = record
-                            page = .detail
+                            openDetail(record)
                         } label: {
                             VStack(alignment: .leading, spacing: 7) {
                                 HStack(spacing: 10) {
@@ -496,18 +506,18 @@ struct DashboardView: View {
                                     resultStrip
                                         .frame(height: 38)
                                         .frame(maxWidth: .infinity)
-                                    Text(record.satisfied ? "满意" : "不满意")
+                                    Text(satisfactionText(for: record))
                                         .font(.system(size: 12, weight: .semibold))
                                         .foregroundStyle(.white)
                                         .padding(.horizontal, 10)
                                         .padding(.vertical, 4)
-                                        .background(record.satisfied ? Color(red: 0.16, green: 0.68, blue: 0.36) : Color(red: 0.88, green: 0.24, blue: 0.21))
+                                        .background(satisfactionColor(for: record))
                                         .clipShape(Capsule())
                                 }
 
                                 HStack(spacing: 12) {
                                     Text(lengthDisplayText(for: record.hairLength))
-                                    Text(segmentDisplayText(for: record.hairLength))
+                                    Text(segmentDisplayText(for: record))
                                     Text("目标色：\(record.hairColor)")
                                     Spacer(minLength: 0)
                                 }
@@ -585,7 +595,7 @@ struct DashboardView: View {
 
                 plainCard {
                     HStack(spacing: 6) {
-                        detailMainPhoto(color: record.hairColor)
+                        detailMainPhoto(record: record)
                             .frame(width: detailPhotoWidth, height: innerHeight)
 
                         ScrollView(showsIndicators: true) {
@@ -613,7 +623,7 @@ struct DashboardView: View {
         }
     }
 
-    private func detailMainPhoto(color: String) -> some View {
+    private func detailMainPhoto(record: ScanRecord) -> some View {
         ZStack(alignment: .bottomLeading) {
             RoundedRectangle(cornerRadius: 10)
                 .fill(
@@ -632,10 +642,10 @@ struct DashboardView: View {
                         .stroke(Color(red: 0.82, green: 0.85, blue: 0.89), lineWidth: 1)
                 }
             VStack(alignment: .leading, spacing: 4) {
-                Text(color)
+                Text(record.hairColor)
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.white)
-                Text("7.5–9.0度")
+                Text(record.baseLevelText ?? "7.5–9.0度")
                     .font(.system(size: 11))
                     .foregroundStyle(Color.white.opacity(0.92))
                 Text("差异要求1度以内")
@@ -762,8 +772,8 @@ struct DashboardView: View {
             }
 
             HStack(spacing: 8) {
-                filterDateField(text: DashboardView.filterFieldDateFormatter.string(from: customStart), selection: $customStart)
-                filterDateField(text: DashboardView.filterFieldDateFormatter.string(from: customEnd), selection: $customEnd)
+                filterDateField(text: DashboardView.filterFieldDateFormatter.string(from: recordStart), selection: $recordStart)
+                filterDateField(text: DashboardView.filterFieldDateFormatter.string(from: recordEnd), selection: $recordEnd)
             }
 
             HStack(spacing: 8) {
@@ -830,12 +840,17 @@ struct DashboardView: View {
                 popupButton("重置") {
                     filterFocusedField = nil
                     scanViewModel.filter = .init()
+                    usesRecordDateFilter = false
+                    recordStart = Date().addingTimeInterval(-24 * 3600)
+                    recordEnd = Date()
                     Task { await reloadRecords() }
                 }
 
                 popupButton("应用", primary: true) {
                     filterFocusedField = nil
                     showFilterPopup = false
+                    usesRecordDateFilter = true
+                    syncRecordDateFilter()
                     Task { await reloadRecords() }
                 }
             }
@@ -1027,6 +1042,16 @@ struct DashboardView: View {
         record.deviceId ?? "hair_item_\(record.id.uuidString.prefix(4))"
     }
 
+    private func openDetail(_ record: ScanRecord) {
+        selectedRecord = record
+        page = .detail
+
+        Task {
+            let detail = await scanViewModel.loadDetail(for: record)
+            selectedRecord = detail
+        }
+    }
+
     private var statsPaneIndex: Int {
         switch statsPane {
         case .all: return 0
@@ -1042,41 +1067,66 @@ struct DashboardView: View {
         return []
     }
 
+    private var isShowingRequestHUD: Bool {
+        dashboardViewModel.isRequesting || scanViewModel.isRequesting
+    }
+
     private var displayedRecords: [ScanRecord] {
         Array(currentRecords.prefix(visibleRecordCount))
     }
 
-    private var soldDevicesValue: Int {
-        if case let .loaded(stats) = dashboardViewModel.state {
-            return stats.soldDevices
+    @MainActor
+    private func reloadStatsForCurrentSelection() async {
+        switch statsPane {
+        case .all:
+            await dashboardViewModel.load(.cumulative)
+        case .quick:
+            await dashboardViewModel.load(.preset(quickRange.statsPreset))
+        case .custom:
+            await dashboardViewModel.load(.custom(start: customStart, end: customEnd))
         }
-        return PreviewMocks.stats.soldDevices
     }
 
-    private func rangeMetrics(hours: Int) -> RangeMetrics {
-        let now = Date()
-        let start = now.addingTimeInterval(TimeInterval(-hours * 3600))
-        let inRange = currentRecords.filter { $0.scannedAt >= start && $0.scannedAt <= now }
-        let active = Set(inRange.map { $0.deviceId ?? "\($0.storeName)-\($0.contactName)" }).count
-        return RangeMetrics(totalUses: inRange.count, activeDevices: active, soldDevices: soldDevicesValue)
-    }
-
-    private var customRangeMetrics: RangeMetrics {
-        let start = min(customStart, customEnd)
-        let end = max(customStart, customEnd)
-        let inRange = currentRecords.filter { $0.scannedAt >= start && $0.scannedAt <= end }
-        let active = Set(inRange.map { $0.deviceId ?? "\($0.storeName)-\($0.contactName)" }).count
-        return RangeMetrics(totalUses: inRange.count, activeDevices: active, soldDevices: soldDevicesValue)
+    @MainActor
+    private func loadRecordsIfNeeded() async {
+        if case .idle = scanViewModel.state {
+            await reloadRecords()
+        }
     }
 
     @MainActor
     private func reloadRecords() async {
-        await scanViewModel.load()
+        if let recordReloadTask {
+            await recordReloadTask.value
+            return
+        }
+
+        syncRecordDateFilter()
+        let task = Task {
+            await scanViewModel.load()
+        }
+        recordReloadTask = task
+        await task.value
+        recordReloadTask = nil
         resetRecordPaging()
     }
 
+    private func syncRecordDateFilter() {
+        if usesRecordDateFilter {
+            scanViewModel.filter.startTime = min(recordStart, recordEnd)
+            scanViewModel.filter.endTime = max(recordStart, recordEnd)
+        } else {
+            scanViewModel.filter.startTime = nil
+            scanViewModel.filter.endTime = nil
+        }
+    }
+
     private func resetRecordPaging() {
-        visibleRecordCount = min(recordPageSize, currentRecords.count)
+        if currentRecords.isEmpty {
+            visibleRecordCount = 0
+        } else {
+            visibleRecordCount = max(1, min(recordPageSize, currentRecords.count))
+        }
         isLoadingMoreRecords = false
     }
 
@@ -1093,6 +1143,10 @@ struct DashboardView: View {
     }
 
     private func lengthDisplayText(for value: String) -> String {
+        if value.hasSuffix("cm") {
+            return value
+        }
+
         switch value {
         case "中长":
             return "25cm"
@@ -1107,7 +1161,24 @@ struct DashboardView: View {
         }
     }
 
-    private func segmentDisplayText(for value: String) -> String {
-        value.contains("长") ? "分1段" : "分2段"
+    private func satisfactionText(for record: ScanRecord) -> String {
+        guard record.satisfactionScore != nil else {
+            return "未评价"
+        }
+        return record.satisfied ? "满意" : "不满意"
+    }
+
+    private func satisfactionColor(for record: ScanRecord) -> Color {
+        guard record.satisfactionScore != nil else {
+            return Color(red: 0.56, green: 0.61, blue: 0.67)
+        }
+        return record.satisfied ? Color(red: 0.16, green: 0.68, blue: 0.36) : Color(red: 0.88, green: 0.24, blue: 0.21)
+    }
+
+    private func segmentDisplayText(for record: ScanRecord) -> String {
+        if let segmentCount = record.segmentCount {
+            return "分\(segmentCount)段"
+        }
+        return record.hairLength.contains("长") ? "分1段" : "分2段"
     }
 }
