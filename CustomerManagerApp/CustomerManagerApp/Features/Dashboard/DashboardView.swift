@@ -289,6 +289,11 @@ struct DashboardView: View {
                 await dashboardViewModel.load()
             }
             .loadingHUD(isShowingRequestHUD)
+            .onChange(of: showFilterPopup) { _, isPresented in
+                if !isPresented {
+                    filterFocusedField = nil
+                }
+            }
         }
     }
 
@@ -754,7 +759,6 @@ struct DashboardView: View {
             .ignoresSafeArea()
             .onTapGesture {
                 filterFocusedField = nil
-                showFilterPopup = false
             }
     }
 
@@ -772,8 +776,16 @@ struct DashboardView: View {
             }
 
             HStack(spacing: 8) {
-                filterDateField(text: DashboardView.filterFieldDateFormatter.string(from: recordStart), selection: $recordStart)
-                filterDateField(text: DashboardView.filterFieldDateFormatter.string(from: recordEnd), selection: $recordEnd)
+                Toggle("按时间筛选", isOn: $usesRecordDateFilter)
+                    .toggleStyle(.switch)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Color(red: 0.09, green: 0.16, blue: 0.23))
+                Spacer(minLength: 0)
+            }
+
+            HStack(spacing: 8) {
+                recordDateField(text: DashboardView.filterFieldDateFormatter.string(from: recordStart), field: .start)
+                recordDateField(text: DashboardView.filterFieldDateFormatter.string(from: recordEnd), field: .end)
             }
 
             HStack(spacing: 8) {
@@ -849,7 +861,6 @@ struct DashboardView: View {
                 popupButton("应用", primary: true) {
                     filterFocusedField = nil
                     showFilterPopup = false
-                    usesRecordDateFilter = true
                     syncRecordDateFilter()
                     Task { await reloadRecords() }
                 }
@@ -857,7 +868,13 @@ struct DashboardView: View {
         }
         .padding(10)
         .frame(maxWidth: maxWidth)
-        .background(.white)
+        .background {
+            RoundedRectangle(cornerRadius: 14)
+                .fill(.white)
+                .onTapGesture {
+                    filterFocusedField = nil
+                }
+        }
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay {
             RoundedRectangle(cornerRadius: 14)
@@ -896,6 +913,57 @@ struct DashboardView: View {
                 .stroke(Color(red: 0.89, green: 0.91, blue: 0.94), lineWidth: 1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func recordDateField(text: String, field: RecordDateField) -> some View {
+        if usesRecordDateFilter {
+            filterDateField(text: text, selection: recordDateBinding(for: field))
+        } else {
+            Text(text)
+                .font(.system(size: 14))
+                .foregroundStyle(Color(red: 0.45, green: 0.51, blue: 0.57))
+                .lineLimit(1)
+                .padding(.horizontal, 10)
+                .frame(height: 34)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(red: 0.96, green: 0.97, blue: 0.98))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(Color(red: 0.89, green: 0.91, blue: 0.94), lineWidth: 1)
+                }
+                .onTapGesture {
+                    usesRecordDateFilter = true
+                }
+        }
+    }
+
+    private enum RecordDateField {
+        case start
+        case end
+    }
+
+    private func recordDateBinding(for field: RecordDateField) -> Binding<Date> {
+        Binding(
+            get: {
+                switch field {
+                case .start:
+                    return recordStart
+                case .end:
+                    return recordEnd
+                }
+            },
+            set: { newValue in
+                usesRecordDateFilter = true
+                switch field {
+                case .start:
+                    recordStart = newValue
+                case .end:
+                    recordEnd = newValue
+                }
+            }
+        )
     }
 
     private func popupButton(_ title: String, primary: Bool = false, action: @escaping () -> Void) -> some View {
