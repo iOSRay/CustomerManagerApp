@@ -32,6 +32,7 @@ struct ScanRecord: Decodable, Identifiable {
     let hairLength: String
     let hairColor: String
     let baseLevelText: String?
+    let hairColorImageURL: URL?
     let segmentCount: Int?
     let satisfactionScore: Double?
     let satisfied: Bool
@@ -49,6 +50,7 @@ struct ScanRecord: Decodable, Identifiable {
         hairLength: String,
         hairColor: String,
         baseLevelText: String? = nil,
+        hairColorImageURL: URL? = nil,
         segmentCount: Int? = nil,
         satisfactionScore: Double? = nil,
         satisfied: Bool,
@@ -65,6 +67,7 @@ struct ScanRecord: Decodable, Identifiable {
         self.hairLength = hairLength
         self.hairColor = hairColor
         self.baseLevelText = baseLevelText
+        self.hairColorImageURL = hairColorImageURL
         self.segmentCount = segmentCount
         self.satisfactionScore = satisfactionScore
         self.satisfied = satisfied
@@ -94,6 +97,8 @@ struct ScanRecord: Decodable, Identifiable {
         let decodedHairColor = try container.decodeFlexibleString(forKeys: [.hairColor, .hairColorSnake, .targetColor, .targetColorSnake, .selectedHairColorName], defaultValue: hairColorPayload?.colorName ?? "")
         hairColor = decodedHairColor
         baseLevelText = hairColorPayload?.baseLevelText
+        let gender = try container.decodeFlexibleStringIfPresent(forKeys: [.gender])
+        hairColorImageURL = hairColorPayload?.imageURL(for: gender)
         segmentCount = try container.decodeFlexibleIntIfPresent(forKeys: [.segmentCount])
         satisfactionScore = try container.decodeFlexibleDoubleIfPresent(forKeys: [.satisfactionScore])
         satisfied = try container.decodeSatisfaction(score: satisfactionScore, segments: segments)
@@ -134,6 +139,7 @@ struct ScanRecord: Decodable, Identifiable {
         case targetColor = "targetColor"
         case targetColorSnake = "target_color"
         case selectedHairColorName = "selected_hair_color_name"
+        case gender
         case segmentCount = "segment_count"
         case satisfied
         case satisfactionScore = "satisfaction_score"
@@ -273,6 +279,8 @@ private struct HairColorPayload: Decodable {
     let colorName: String?
     let baseLevelMin: Double?
     let baseLevelMax: Double?
+    let femaleImageURL: URL?
+    let maleImageURL: URL?
 
     var baseLevelText: String? {
         guard let baseLevelMin, let baseLevelMax else {
@@ -281,10 +289,19 @@ private struct HairColorPayload: Decodable {
         return "\(baseLevelMin.cleanDecimalText)-\(baseLevelMax.cleanDecimalText)度"
     }
 
+    func imageURL(for gender: String?) -> URL? {
+        if gender?.uppercased() == "MALE" {
+            return maleImageURL ?? femaleImageURL
+        }
+        return femaleImageURL ?? maleImageURL
+    }
+
     private enum CodingKeys: String, CodingKey {
         case colorName = "color_name"
         case baseLevelMin = "base_level_min"
         case baseLevelMax = "base_level_max"
+        case femaleImageURL = "female_image"
+        case maleImageURL = "male_image"
     }
 }
 
@@ -294,6 +311,7 @@ private struct SegmentPayload: Decodable {
     let imageURL: URL?
     let referImageURL: URL?
     let referLab: LabPayload?
+    let sampledLab: LabPayload?
     let referUID: String?
     let matchStatus: Int?
     let segmentLength: Double?
@@ -306,6 +324,7 @@ private struct SegmentPayload: Decodable {
         case imageURL = "image_url"
         case referImageURL = "refer_image_url"
         case referLab = "refer_lab"
+        case sampledLab = "sampled_lab"
         case referUID = "refer_uid"
         case matchStatus = "match_status"
         case segmentLength = "segment_length"
@@ -327,7 +346,7 @@ private struct SegmentPayload: Decodable {
                     accessibilityLabel: "第\(serialNumber)段图片"
                 )
             )
-            labValues.append("")
+            labValues.append(sampledLab?.displayText ?? "")
         }
 
         if let referImageURL {
@@ -350,11 +369,18 @@ private struct SegmentPayload: Decodable {
             formula: recipe.map { "配方：\($0.formula)" } ?? (noRecipeReason ?? "暂无配方"),
             ratio: recipe.map { "比例：\($0.ratios)" } ?? "",
             referenceId: referUID.map { "参考发条id: \($0)" } ?? "",
-            delta: "",
+            delta: deltaText,
             labValues: labValues,
             usesAlternateSwatch: serialNumber.isMultiple(of: 2),
             previewImages: previewImages
         )
+    }
+
+    private var deltaText: String {
+        guard let sampledLab, let referLab else {
+            return ""
+        }
+        return "Delta: \(sampledLab.lDelta(to: referLab).cleanDecimalText)"
     }
 }
 
@@ -365,6 +391,10 @@ private struct LabPayload: Decodable {
 
     var displayText: String {
         "Lab: \(lValue.cleanDecimalText), \(aValue.cleanDecimalText), \(bValue.cleanDecimalText)"
+    }
+
+    func lDelta(to other: LabPayload) -> Double {
+        abs(lValue - other.lValue)
     }
 
     private enum CodingKeys: String, CodingKey {

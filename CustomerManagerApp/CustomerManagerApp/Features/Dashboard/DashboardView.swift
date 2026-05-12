@@ -600,8 +600,9 @@ struct DashboardView: View {
 
                 plainCard {
                     HStack(spacing: 6) {
-                        detailMainPhoto(record: record)
+                        detailMainPhoto(record: record, width: detailPhotoWidth, height: innerHeight)
                             .frame(width: detailPhotoWidth, height: innerHeight)
+                            .clipped()
 
                         ScrollView(showsIndicators: true) {
                             VStack(spacing: 0) {
@@ -628,7 +629,7 @@ struct DashboardView: View {
         }
     }
 
-    private func detailMainPhoto(record: ScanRecord) -> some View {
+    private func detailMainPhoto(record: ScanRecord, width: CGFloat, height: CGFloat) -> some View {
         ZStack(alignment: .bottomLeading) {
             RoundedRectangle(cornerRadius: 10)
                 .fill(
@@ -646,6 +647,29 @@ struct DashboardView: View {
                     RoundedRectangle(cornerRadius: 10)
                         .stroke(Color(red: 0.82, green: 0.85, blue: 0.89), lineWidth: 1)
                 }
+
+            if let imageURL = record.hairColorImageURL {
+                KFImage(imageURL)
+                    .placeholder {
+                        Color.clear
+                    }
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: width, height: height)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+            }
+
+            LinearGradient(
+                colors: [
+                    .clear,
+                    Color.black.opacity(0.54)
+                ],
+                startPoint: .center,
+                endPoint: .bottom
+            )
+            .frame(width: width, height: height)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(record.hairColor)
                     .font(.system(size: 13, weight: .semibold))
@@ -659,6 +683,8 @@ struct DashboardView: View {
             }
             .padding(10)
         }
+        .frame(width: width, height: height)
+        .clipped()
     }
 
     private func detailItemRow(item: DetailFormulaItem, rowHeight: CGFloat) -> some View {
