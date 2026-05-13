@@ -1096,7 +1096,6 @@ struct DashboardView: View {
                     usesRecordDateFilter = false
                     recordStart = Date().addingTimeInterval(-24 * 3600)
                     recordEnd = Date()
-                    Task { await reloadRecords(resetPaging: true) }
                 }
 
                 popupButton("应用", primary: true) {
