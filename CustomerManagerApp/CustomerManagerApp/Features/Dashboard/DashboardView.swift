@@ -1,6 +1,7 @@
 import SwiftUI
 import UIKit
 import Kingfisher
+import Refresh
 
 private enum AppPage {
     case home
@@ -92,6 +93,7 @@ private extension ScanRecordPreviewImage {
         return ImagePreviewItem(
             url: url,
             placeholder: placeholder,
+            processor: rotates90CW ? Rotate90CWImageProcessor() : nil,
             initialWidthRatio: initialWidthRatio.map { CGFloat($0) },
             cacheKey: cacheKey,
             prefersFitHeight: prefersFitHeight,
@@ -105,6 +107,9 @@ private final class DetailPreviewImageTileView: UIView {
     private let imageView = UIImageView()
     private var previewItems: [ImagePreviewItem] = []
     private var previewIndex: Int = 0
+    private var currentAsset: ScanRecordPreviewImage?
+    private var lastLoadedCacheKey: String?
+    private var lastLoadedSize: CGSize = .zero
 
     private lazy var tapRecognizer: UITapGestureRecognizer = {
         let gesture = UITapGestureRecognizer(target: self, action: #selector(handleTapPreview))
@@ -167,30 +172,62 @@ private final class DetailPreviewImageTileView: UIView {
         placeholderView.layer.borderWidth = 1
         placeholderView.layer.borderColor = UIColor(red: 0.80, green: 0.72, blue: 0.61, alpha: 1).cgColor
 
-        let currentAsset = assets.indices.contains(displayIndex) ? assets[displayIndex] : nil
+        let nextAsset = assets.indices.contains(displayIndex) ? assets[displayIndex] : nil
         previewItems = assets.compactMap { $0.asPreviewItem(placeholder: nil) }
         tapRecognizer.isEnabled = !previewItems.isEmpty
 
-        imageView.image = nil
-        imageView.kf.cancelDownloadTask()
-        if let currentURL = currentAsset?.url {
-            let resource: Resource? = {
-                if let cacheKey = currentAsset?.cacheKey, !cacheKey.isEmpty {
-                    return KF.ImageResource(downloadURL: currentURL, cacheKey: cacheKey)
-                }
-                return currentURL
-            }()
-            imageView.kf.setImage(
-                with: resource,
-                placeholder: nil,
-                options: [.cacheOriginalImage, .backgroundDecode]
-            )
+        if currentAsset != nextAsset {
+            currentAsset = nextAsset
+            lastLoadedCacheKey = nil
+            lastLoadedSize = .zero
+            imageView.image = nil
+            imageView.kf.cancelDownloadTask()
         }
+
+        loadImageIfNeeded()
     }
 
     override func layoutSubviews() {
         super.layoutSubviews()
         placeholderView.layer.sublayers?.first?.frame = placeholderView.bounds
+        loadImageIfNeeded()
+    }
+
+    private func loadImageIfNeeded() {
+        guard let currentAsset, let currentURL = currentAsset.url else { return }
+        let targetSize = bounds.size
+        guard targetSize.width >= 8, targetSize.height >= 8 else { return }
+
+        let cacheKey = currentAsset.cacheKey?.isEmpty == false
+            ? currentAsset.cacheKey!
+            : currentURL.absoluteString
+        guard cacheKey != lastLoadedCacheKey || targetSize != lastLoadedSize else { return }
+
+        lastLoadedCacheKey = cacheKey
+        lastLoadedSize = targetSize
+
+        let resizedSize = currentAsset.rotates90CW
+            ? CGSize(width: targetSize.height, height: targetSize.width)
+            : targetSize
+        let processor: any ImageProcessor = {
+            let resize = ResizingImageProcessor(referenceSize: resizedSize, mode: .aspectFill)
+            if currentAsset.rotates90CW {
+                return resize |> Rotate90CWImageProcessor()
+            }
+            return resize
+        }()
+        let resource = KF.ImageResource(downloadURL: currentURL, cacheKey: cacheKey)
+        imageView.kf.setImage(
+            with: resource,
+            placeholder: nil,
+            options: [
+                .processor(processor),
+                .scaleFactor(UIScreen.main.scale),
+                .cacheOriginalImage,
+                .backgroundDecode,
+                .retryStrategy(DelayRetryStrategy(maxRetryCount: 2, retryInterval: .seconds(1)))
+            ]
+        )
     }
 
     @objc private func handleTapPreview() {
@@ -217,6 +254,99 @@ private struct DetailPreviewImageTile: UIViewRepresentable {
 
     func updateUIView(_ uiView: DetailPreviewImageTileView, context: Context) {
         uiView.configure(assets: assets, displayIndex: displayIndex, alt: alt)
+    }
+}
+
+private final class DetailMainPhotoImageView: UIView {
+    private let imageView = UIImageView()
+    private var imageURL: URL?
+    private var lastLoadedCacheKey: String?
+    private var lastLoadedSize: CGSize = .zero
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        commonInit()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        commonInit()
+    }
+
+    private func commonInit() {
+        clipsToBounds = true
+        imageView.contentMode = .scaleAspectFill
+        imageView.clipsToBounds = true
+        addSubview(imageView)
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            imageView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            imageView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            imageView.topAnchor.constraint(equalTo: topAnchor),
+            imageView.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ])
+    }
+
+    func configure(url: URL?) {
+        guard imageURL != url else {
+            loadImageIfNeeded()
+            return
+        }
+
+        imageURL = url
+        lastLoadedCacheKey = nil
+        lastLoadedSize = .zero
+        imageView.image = nil
+        imageView.kf.cancelDownloadTask()
+        loadImageIfNeeded()
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        loadImageIfNeeded()
+    }
+
+    private func loadImageIfNeeded() {
+        guard let imageURL else { return }
+        let targetSize = bounds.size
+        guard targetSize.width >= 8, targetSize.height >= 8 else { return }
+
+        let cacheKey = SignedImageCacheKey.make(for: imageURL)
+        guard cacheKey != lastLoadedCacheKey || targetSize != lastLoadedSize else { return }
+
+        lastLoadedCacheKey = cacheKey
+        lastLoadedSize = targetSize
+
+        let processor = DownsamplingImageProcessor(
+            size: CGSize(
+                width: max(1, ceil(targetSize.width * 1.25)),
+                height: max(1, ceil(targetSize.height * 1.25))
+            )
+        )
+        let resource = KF.ImageResource(downloadURL: imageURL, cacheKey: cacheKey)
+        imageView.kf.setImage(
+            with: resource,
+            placeholder: nil,
+            options: [
+                .processor(processor),
+                .scaleFactor(UIScreen.main.scale),
+                .cacheOriginalImage,
+                .backgroundDecode,
+                .retryStrategy(DelayRetryStrategy(maxRetryCount: 2, retryInterval: .seconds(1)))
+            ]
+        )
+    }
+}
+
+private struct DetailMainPhotoImage: UIViewRepresentable {
+    let url: URL?
+
+    func makeUIView(context: Context) -> DetailMainPhotoImageView {
+        DetailMainPhotoImageView()
+    }
+
+    func updateUIView(_ uiView: DetailMainPhotoImageView, context: Context) {
+        uiView.configure(url: url)
     }
 }
 
@@ -252,6 +382,8 @@ struct DashboardView: View {
     @State private var usesRecordDateFilter = false
     @State private var visibleRecordCount = 20
     @State private var isLoadingMoreRecords = false
+    @State private var isRefreshingRecords = false
+    @State private var isLoadingSelectedRecordDetail = false
     @State private var recordReloadTask: Task<Void, Never>?
     @FocusState private var filterFocusedField: FilterField?
 
@@ -486,6 +618,12 @@ struct DashboardView: View {
 
     private var recordsContent: some View {
         ScrollView(showsIndicators: false) {
+            RefreshHeader(refreshing: $isRefreshingRecords) {
+                refreshRecordsFromHeader()
+            } label: { progress in
+                refreshHeaderLabel(progress: progress)
+            }
+
             VStack(alignment: .leading, spacing: 8) {
                 if case .loading = scanViewModel.state {
                     EmptyView()
@@ -508,9 +646,11 @@ struct DashboardView: View {
                                 .foregroundStyle(Color(red: 0.33, green: 0.39, blue: 0.46))
 
                                 HStack(spacing: 10) {
-                                    resultStrip
-                                        .frame(height: 38)
-                                        .frame(maxWidth: .infinity)
+                                    GeometryReader { proxy in
+                                        recordScanImageStrip(record, size: proxy.size)
+                                    }
+                                    .frame(height: 38)
+                                    .frame(maxWidth: .infinity)
                                     Text(satisfactionText(for: record))
                                         .font(.system(size: 12, weight: .semibold))
                                         .foregroundStyle(.white)
@@ -535,9 +675,6 @@ struct DashboardView: View {
                             .background(.white)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
-                        .onAppear {
-                            loadMoreIfNeeded(currentRecord: record)
-                        }
                     }
 
                     if currentRecords.isEmpty {
@@ -546,32 +683,48 @@ struct DashboardView: View {
                                 .font(.system(size: 14))
                                 .foregroundStyle(Color(red: 0.42, green: 0.48, blue: 0.54))
                         }
-                    } else if displayedRecords.count < currentRecords.count {
-                        HStack {
-                            Spacer()
-                            Text(isLoadingMoreRecords ? "加载中..." : "上拉加载更多")
-                                .font(.system(size: 12))
-                                .foregroundStyle(Color(red: 0.42, green: 0.48, blue: 0.54))
-                            Spacer()
-                        }
-                        .padding(.vertical, 6)
-                    } else {
-                        HStack {
-                            Spacer()
-                            Text("没有更多了")
-                                .font(.system(size: 12))
-                                .foregroundStyle(Color(red: 0.58, green: 0.63, blue: 0.68))
-                            Spacer()
-                        }
-                        .padding(.vertical, 6)
                     }
                 }
             }
             .padding(10)
+
+            if !currentRecords.isEmpty {
+                RefreshFooter(refreshing: $isLoadingMoreRecords) {
+                    loadMoreRecordsFromFooter()
+                } label: {
+                    refreshFooterLabel(noMore: displayedRecords.count >= currentRecords.count)
+                }
+                .noMore(displayedRecords.count >= currentRecords.count)
+                .preload(offset: 24)
+            }
         }
-        .refreshable {
-            await reloadRecords()
+        .enableRefresh()
+        .clipped()
+    }
+
+    private func refreshHeaderLabel(progress: CGFloat) -> some View {
+        HStack(spacing: 8) {
+            ProgressView()
+                .progressViewStyle(.circular)
+                .scaleEffect(0.72)
+            Text(isRefreshingRecords ? "加载中..." : (progress > 1 ? "释放刷新" : "下拉刷新"))
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(Color(red: 0.33, green: 0.39, blue: 0.46))
         }
+        .frame(height: 44)
+        .frame(maxWidth: .infinity)
+        .background(Color(red: 0.95, green: 0.97, blue: 0.98))
+    }
+
+    private func refreshFooterLabel(noMore: Bool) -> some View {
+        HStack {
+            Spacer()
+            Text(noMore ? "没有更多了" : (isLoadingMoreRecords ? "加载中..." : "上拉加载更多"))
+                .font(.system(size: 12))
+                .foregroundStyle(noMore ? Color(red: 0.58, green: 0.63, blue: 0.68) : Color(red: 0.42, green: 0.48, blue: 0.54))
+            Spacer()
+        }
+        .padding(.vertical, 6)
     }
 
     private var resultStrip: some View {
@@ -592,6 +745,45 @@ struct DashboardView: View {
             }
     }
 
+    private func recordScanImageStrip(_ record: ScanRecord, size: CGSize) -> some View {
+        ZStack {
+            resultStrip
+
+            if let imageURL = record.hairScanImageURL {
+                optimizedKFImage(url: imageURL, size: size)
+                    .placeholder {
+                        Color.clear
+                    }
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: size.width, height: size.height)
+                    .clipped()
+            }
+        }
+        .frame(width: size.width, height: size.height)
+        .clipShape(RoundedRectangle(cornerRadius: 3))
+        .overlay {
+            RoundedRectangle(cornerRadius: 3)
+                .stroke(Color(red: 0.62, green: 0.59, blue: 0.53), lineWidth: 1)
+        }
+    }
+
+    private func optimizedKFImage(url: URL, size: CGSize) -> KFImage {
+        let targetSize = CGSize(
+            width: max(1, ceil(size.width * 1.25)),
+            height: max(1, ceil(size.height * 1.25))
+        )
+        let processor = DownsamplingImageProcessor(size: targetSize)
+
+        return KFImage.url(url, cacheKey: SignedImageCacheKey.make(for: url))
+            .setProcessor(processor)
+            .scaleFactor(UIScreen.main.scale)
+            .cacheOriginalImage()
+            .backgroundDecode()
+            .retry(maxCount: 2, interval: .seconds(1))
+            .fade(duration: 0.15)
+    }
+
     private var detailContent: some View {
         GeometryReader { geo in
             if let record = selectedRecord {
@@ -607,14 +799,19 @@ struct DashboardView: View {
                         ScrollView(showsIndicators: true) {
                             VStack(spacing: 0) {
                                 let items = detailFormulaItems(for: record)
-                                let rowHeight = innerHeight / 2
-                                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                                    detailItemRow(item: item, rowHeight: rowHeight)
-                                        .frame(height: rowHeight, alignment: .top)
+                                if items.isEmpty {
+                                    detailFormulaLoadingPlaceholder
+                                        .frame(height: innerHeight)
+                                } else {
+                                    let rowHeight = innerHeight / CGFloat(items.count)
+                                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                                        detailItemRow(item: item, rowHeight: rowHeight)
+                                            .frame(height: rowHeight, alignment: .top)
 
-                                    if index < items.count - 1 {
-                                        Divider()
-                                            .overlay(Color(red: 0.93, green: 0.95, blue: 0.97))
+                                        if index < items.count - 1 {
+                                            Divider()
+                                                .overlay(Color(red: 0.93, green: 0.95, blue: 0.97))
+                                        }
                                     }
                                 }
                             }
@@ -627,6 +824,17 @@ struct DashboardView: View {
                 .padding(detailContentInset)
             }
         }
+    }
+
+    private var detailFormulaLoadingPlaceholder: some View {
+        VStack(spacing: 8) {
+            ProgressView()
+                .progressViewStyle(.circular)
+            Text(isLoadingSelectedRecordDetail ? "加载中..." : "暂无发段数据")
+                .font(.system(size: 13))
+                .foregroundStyle(Color(red: 0.42, green: 0.48, blue: 0.54))
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func detailMainPhoto(record: ScanRecord, width: CGFloat, height: CGFloat) -> some View {
@@ -649,12 +857,7 @@ struct DashboardView: View {
                 }
 
             if let imageURL = record.hairColorImageURL {
-                KFImage(imageURL)
-                    .placeholder {
-                        Color.clear
-                    }
-                    .resizable()
-                    .scaledToFill()
+                DetailMainPhotoImage(url: imageURL)
                     .frame(width: width, height: height)
                     .clipShape(RoundedRectangle(cornerRadius: 10))
             }
@@ -740,32 +943,7 @@ struct DashboardView: View {
             }
         }
 
-        return [
-            DetailFormulaItem(
-                degree: record.satisfied ? "8.5度" : "8.3度",
-                part: "根部 8.0cm",
-                formula: "配方：\(record.formula)",
-                ratio: "比例：2 : 2 : 1 : 10 : 15",
-                referenceId: "参考发条id: A1794-1",
-                delta: record.satisfied ? "Delta: 0.32" : "Delta: 0.58",
-                lab1: record.satisfied ? "Lab: 62.1, 7.8, 18.4" : "Lab: 61.3, 8.4, 19.1",
-                lab2: record.satisfied ? "Lab: 63.4, 8.1, 17.9" : "Lab: 62.0, 8.8, 18.6",
-                useAltSwatch: false,
-                previewAssets: []
-            ),
-            DetailFormulaItem(
-                degree: record.satisfied ? "8.0度" : "7.8度",
-                part: "尾部 6.7cm",
-                formula: "配方：6/77 + 8/65 + 4/0 + 00 + 3%",
-                ratio: "比例：3 : 3 : 2 : 24 : 32",
-                referenceId: "参考发条id: ZA887-3",
-                delta: record.satisfied ? "Delta: 0.47" : "Delta: 0.73",
-                lab1: record.satisfied ? "Lab: 59.6, 9.2, 16.5" : "Lab: 58.2, 9.8, 17.3",
-                lab2: record.satisfied ? "Lab: 60.1, 8.9, 15.8" : "Lab: 58.8, 9.5, 16.7",
-                useAltSwatch: true,
-                previewAssets: []
-            )
-        ]
+        return []
     }
 
     private func swatchWithLab(label: String, alt: Bool, assets: [ScanRecordPreviewImage], displayIndex: Int, imageHeight: CGFloat) -> some View {
@@ -777,7 +955,7 @@ struct DashboardView: View {
                 .foregroundStyle(Color(red: 0.41, green: 0.49, blue: 0.56))
                 .lineLimit(1)
         }
-        .frame(width: 92)
+        .frame(width: 100)
     }
 
     private var overlay: some View {
@@ -881,14 +1059,14 @@ struct DashboardView: View {
                     usesRecordDateFilter = false
                     recordStart = Date().addingTimeInterval(-24 * 3600)
                     recordEnd = Date()
-                    Task { await reloadRecords() }
+                    Task { await reloadRecords(resetPaging: true) }
                 }
 
                 popupButton("应用", primary: true) {
                     filterFocusedField = nil
                     showFilterPopup = false
                     syncRecordDateFilter()
-                    Task { await reloadRecords() }
+                    Task { await reloadRecords(resetPaging: true) }
                 }
             }
         }
@@ -1139,10 +1317,12 @@ struct DashboardView: View {
     private func openDetail(_ record: ScanRecord) {
         selectedRecord = record
         page = .detail
+        isLoadingSelectedRecordDetail = true
 
         Task {
             let detail = await scanViewModel.loadDetail(for: record)
             selectedRecord = detail
+            isLoadingSelectedRecordDetail = false
         }
     }
 
@@ -1162,7 +1342,8 @@ struct DashboardView: View {
     }
 
     private var isShowingRequestHUD: Bool {
-        dashboardViewModel.isRequesting || scanViewModel.isRequesting
+        (dashboardViewModel.isRequesting && !dashboardViewModel.hasLoadedStats)
+            || (scanViewModel.isRequesting && (page != .records || !scanViewModel.hasLoadedRecords))
     }
 
     private var displayedRecords: [ScanRecord] {
@@ -1184,14 +1365,16 @@ struct DashboardView: View {
     @MainActor
     private func loadRecordsIfNeeded() async {
         if case .idle = scanViewModel.state {
-            await reloadRecords()
+            await reloadRecords(resetPaging: true)
         }
     }
 
     @MainActor
-    private func reloadRecords() async {
+    private func reloadRecords(resetPaging: Bool) async {
+        let previousVisibleCount = visibleRecordCount
         if let recordReloadTask {
             await recordReloadTask.value
+            updateRecordPaging(reset: resetPaging, previousVisibleCount: previousVisibleCount)
             return
         }
 
@@ -1202,7 +1385,8 @@ struct DashboardView: View {
         recordReloadTask = task
         await task.value
         recordReloadTask = nil
-        resetRecordPaging()
+        updateRecordPaging(reset: resetPaging, previousVisibleCount: previousVisibleCount)
+        prefetchVisibleRecordImages()
     }
 
     private func syncRecordDateFilter() {
@@ -1215,25 +1399,50 @@ struct DashboardView: View {
         }
     }
 
-    private func resetRecordPaging() {
+    private func updateRecordPaging(reset: Bool, previousVisibleCount: Int) {
         if currentRecords.isEmpty {
             visibleRecordCount = 0
-        } else {
+        } else if reset {
             visibleRecordCount = max(1, min(recordPageSize, currentRecords.count))
+        } else {
+            visibleRecordCount = max(1, min(max(recordPageSize, previousVisibleCount), currentRecords.count))
         }
         isLoadingMoreRecords = false
     }
 
-    private func loadMoreIfNeeded(currentRecord: ScanRecord) {
-        guard !isLoadingMoreRecords else { return }
-        guard displayedRecords.count < currentRecords.count else { return }
-        guard currentRecord.id == displayedRecords.last?.id else { return }
+    private func refreshRecordsFromHeader() {
+        guard !scanViewModel.isRequesting else {
+            isRefreshingRecords = false
+            return
+        }
 
-        isLoadingMoreRecords = true
+        Task {
+            await reloadRecords(resetPaging: false)
+            isRefreshingRecords = false
+        }
+    }
+
+    private func loadMoreRecordsFromFooter() {
+        guard displayedRecords.count < currentRecords.count else { return }
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
             visibleRecordCount = min(visibleRecordCount + recordPageSize, currentRecords.count)
             isLoadingMoreRecords = false
+            prefetchVisibleRecordImages()
         }
+    }
+
+    private func prefetchVisibleRecordImages() {
+        let resources: [any Resource] = displayedRecords.compactMap { record -> KF.ImageResource? in
+            guard let url = record.hairScanImageURL else { return nil }
+            return KF.ImageResource(downloadURL: url, cacheKey: SignedImageCacheKey.make(for: url))
+        }
+        guard !resources.isEmpty else { return }
+
+        ImagePrefetcher(
+            resources: resources,
+            options: [.cacheOriginalImage, .backgroundDecode]
+        ).start()
     }
 
     private func lengthDisplayText(for value: String) -> String {

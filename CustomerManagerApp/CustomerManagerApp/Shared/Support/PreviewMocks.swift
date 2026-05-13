@@ -30,6 +30,7 @@ enum PreviewMocks {
                         ScanRecordPreviewImage(
                             url: URL(string: "https://picsum.photos/seed/customer-hair-root-1/480/720"),
                             cacheKey: "customer-hair-root-1",
+                            rotates90CW: true,
                             prefersFitHeight: true,
                             initialWidthRatio: nil,
                             accessibilityLabel: "根部参考图一"
@@ -37,6 +38,7 @@ enum PreviewMocks {
                         ScanRecordPreviewImage(
                             url: URL(string: "https://picsum.photos/seed/customer-hair-root-2/480/720"),
                             cacheKey: "customer-hair-root-2",
+                            rotates90CW: false,
                             prefersFitHeight: true,
                             initialWidthRatio: nil,
                             accessibilityLabel: "根部参考图二"
@@ -57,6 +59,7 @@ enum PreviewMocks {
                         ScanRecordPreviewImage(
                             url: URL(string: "https://picsum.photos/seed/customer-hair-tail-1/480/720"),
                             cacheKey: "customer-hair-tail-1",
+                            rotates90CW: true,
                             prefersFitHeight: true,
                             initialWidthRatio: nil,
                             accessibilityLabel: "尾部参考图一"
@@ -64,6 +67,7 @@ enum PreviewMocks {
                         ScanRecordPreviewImage(
                             url: URL(string: "https://picsum.photos/seed/customer-hair-tail-2/480/720"),
                             cacheKey: "customer-hair-tail-2",
+                            rotates90CW: false,
                             prefersFitHeight: true,
                             initialWidthRatio: nil,
                             accessibilityLabel: "尾部参考图二"

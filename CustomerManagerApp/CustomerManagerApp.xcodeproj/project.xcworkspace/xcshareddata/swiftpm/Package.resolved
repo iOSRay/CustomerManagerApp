@@ -1,5 +1,5 @@
 {
-  "originHash" : "917a2b512148612347b307b5f8d624e74df48af36fa322c80901a86fc0e1317f",
+  "originHash" : "88d2090802adf32d12bcf6b7e5dd7c63157657fb4b2d7be31eb9cd350310db39",
   "pins" : [
     {
       "identity" : "kingfisher",
@@ -8,6 +8,15 @@
       "state" : {
         "revision" : "c152c1915f60c51e4afa0752656993ee5b3c63db",
         "version" : "8.8.1"
+      }
+    },
+    {
+      "identity" : "refresh",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/wxxsw/Refresh.git",
+      "state" : {
+        "branch" : "master",
+        "revision" : "4b507f7c6f08f80d853b7ff052f4324a1279cdfe"
       }
     }
   ],

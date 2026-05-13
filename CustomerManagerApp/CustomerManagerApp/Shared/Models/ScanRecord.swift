@@ -3,6 +3,7 @@ import Foundation
 struct ScanRecordPreviewImage: Codable, Hashable {
     let url: URL?
     let cacheKey: String?
+    let rotates90CW: Bool
     let prefersFitHeight: Bool
     let initialWidthRatio: Double?
     let accessibilityLabel: String?
@@ -31,6 +32,7 @@ struct ScanRecord: Decodable, Identifiable {
     let scannedAt: Date
     let hairLength: String
     let hairColor: String
+    let hairScanImageURL: URL?
     let baseLevelText: String?
     let hairColorImageURL: URL?
     let segmentCount: Int?
@@ -49,6 +51,7 @@ struct ScanRecord: Decodable, Identifiable {
         scannedAt: Date,
         hairLength: String,
         hairColor: String,
+        hairScanImageURL: URL? = nil,
         baseLevelText: String? = nil,
         hairColorImageURL: URL? = nil,
         segmentCount: Int? = nil,
@@ -66,6 +69,7 @@ struct ScanRecord: Decodable, Identifiable {
         self.scannedAt = scannedAt
         self.hairLength = hairLength
         self.hairColor = hairColor
+        self.hairScanImageURL = hairScanImageURL
         self.baseLevelText = baseLevelText
         self.hairColorImageURL = hairColorImageURL
         self.segmentCount = segmentCount
@@ -96,6 +100,7 @@ struct ScanRecord: Decodable, Identifiable {
         hairLength = try container.decodeHairLength(fallback: hairItem?.physicalLength)
         let decodedHairColor = try container.decodeFlexibleString(forKeys: [.hairColor, .hairColorSnake, .targetColor, .targetColorSnake, .selectedHairColorName], defaultValue: hairColorPayload?.colorName ?? "")
         hairColor = decodedHairColor
+        hairScanImageURL = try container.decodeFlexibleURLIfPresent(forKeys: [.hairScanImageURL])
         baseLevelText = hairColorPayload?.baseLevelText
         let gender = try container.decodeFlexibleStringIfPresent(forKeys: [.gender])
         hairColorImageURL = hairColorPayload?.imageURL(for: gender)
@@ -139,6 +144,7 @@ struct ScanRecord: Decodable, Identifiable {
         case targetColor = "targetColor"
         case targetColorSnake = "target_color"
         case selectedHairColorName = "selected_hair_color_name"
+        case hairScanImageURL = "hair_scan_image_url"
         case gender
         case segmentCount = "segment_count"
         case satisfied
@@ -166,6 +172,18 @@ private extension KeyedDecodingContainer where K == ScanRecord.CodingKeys {
             }
             if let value = try? decodeIfPresent(Double.self, forKey: key) {
                 return value.cleanDecimalText
+            }
+        }
+        return nil
+    }
+
+    func decodeFlexibleURLIfPresent(forKeys keys: [K]) throws -> URL? {
+        for key in keys {
+            if let url = try? decodeIfPresent(URL.self, forKey: key) {
+                return url
+            }
+            if let value = try? decodeIfPresent(String.self, forKey: key), let url = URL(string: value) {
+                return url
             }
         }
         return nil
@@ -243,6 +261,10 @@ private extension KeyedDecodingContainer where K == ScanRecord.CodingKeys {
 }
 
 private extension Double {
+    var fullDecimalText: String {
+        String(self)
+    }
+
     var cleanDecimalText: String {
         let rounded = rounded()
         if abs(self - rounded) < 0.000001 {
@@ -286,7 +308,7 @@ private struct HairColorPayload: Decodable {
         guard let baseLevelMin, let baseLevelMax else {
             return nil
         }
-        return "\(baseLevelMin.cleanDecimalText)-\(baseLevelMax.cleanDecimalText)度"
+        return "\(baseLevelMin.fullDecimalText)-\(baseLevelMax.fullDecimalText)度"
     }
 
     func imageURL(for gender: String?) -> URL? {
@@ -340,7 +362,8 @@ private struct SegmentPayload: Decodable {
             previewImages.append(
                 ScanRecordPreviewImage(
                     url: imageURL,
-                    cacheKey: imageURL.absoluteString,
+                    cacheKey: SignedImageCacheKey.make(for: imageURL),
+                    rotates90CW: true,
                     prefersFitHeight: true,
                     initialWidthRatio: nil,
                     accessibilityLabel: "第\(serialNumber)段图片"
@@ -353,7 +376,8 @@ private struct SegmentPayload: Decodable {
             previewImages.append(
                 ScanRecordPreviewImage(
                     url: referImageURL,
-                    cacheKey: referImageURL.absoluteString,
+                    cacheKey: SignedImageCacheKey.make(for: referImageURL),
+                    rotates90CW: false,
                     prefersFitHeight: true,
                     initialWidthRatio: nil,
                     accessibilityLabel: "第\(serialNumber)段参考发条图"

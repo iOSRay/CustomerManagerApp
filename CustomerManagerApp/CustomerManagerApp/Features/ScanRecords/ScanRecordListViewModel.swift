@@ -38,6 +38,10 @@ final class ScanRecordListViewModel: ObservableObject {
     private var isLoadingList = false
     private var requestCount = 0
 
+    var hasLoadedRecords: Bool {
+        loadedRecords != nil
+    }
+
     init(scanRecordService: ScanRecordServiceProtocol) {
         self.scanRecordService = scanRecordService
     }
@@ -67,6 +71,13 @@ final class ScanRecordListViewModel: ObservableObject {
             state = .loaded(previousRecords.isEmpty ? PreviewMocks.records : previousRecords)
             noticeMessage = "网络异常，已展示离线数据"
         }
+    }
+
+    private var loadedRecords: [ScanRecord]? {
+        if case let .loaded(records) = state {
+            return records
+        }
+        return nil
     }
 
     func loadDetail(for record: ScanRecord) async -> ScanRecord {

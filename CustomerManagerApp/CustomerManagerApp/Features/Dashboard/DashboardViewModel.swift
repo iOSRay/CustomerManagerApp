@@ -18,6 +18,10 @@ final class DashboardViewModel: ObservableObject {
     private var requestCount = 0
     private var requestSequence = 0
 
+    var hasLoadedStats: Bool {
+        loadedStats != nil
+    }
+
     init(statsService: StatsServiceProtocol) {
         self.statsService = statsService
     }
@@ -25,9 +29,12 @@ final class DashboardViewModel: ObservableObject {
     func load(_ query: UsageStatsQuery = .cumulative) async {
         requestSequence += 1
         let sequence = requestSequence
+        let previousStats = loadedStats
 
         currentQuery = query
-        state = .loading
+        if previousStats == nil {
+            state = .loading
+        }
         noticeMessage = nil
         beginRequest()
         defer { endRequest() }
@@ -38,10 +45,22 @@ final class DashboardViewModel: ObservableObject {
             state = .loaded(stats)
         } catch {
             guard sequence == requestSequence else { return }
-            // Keep page usable when network is unavailable.
-            state = .loaded(PreviewMocks.stats)
-            noticeMessage = "网络异常，已展示离线数据"
+            if let previousStats {
+                state = .loaded(previousStats)
+                noticeMessage = "网络异常，已保留上次数据"
+            } else {
+                // Keep page usable when network is unavailable.
+                state = .loaded(PreviewMocks.stats)
+                noticeMessage = "网络异常，已展示离线数据"
+            }
         }
+    }
+
+    private var loadedStats: DashboardStats? {
+        if case let .loaded(stats) = state {
+            return stats
+        }
+        return nil
     }
 
     private func beginRequest() {
