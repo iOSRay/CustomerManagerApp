@@ -251,12 +251,20 @@ private extension KeyedDecodingContainer where K == ScanRecord.CodingKeys {
                 return value
             }
             if let value = try decodeIfPresent(String.self, forKey: key) {
-                if let date = ISO8601DateFormatter.fractionalSeconds.date(from: value) ?? ISO8601DateFormatter.internetDateTime.date(from: value) {
+                if let date = ScanRecordDateParser.date(from: value) {
                     return date
                 }
             }
         }
-        return fallback ?? Date()
+        if let fallback {
+            return fallback
+        }
+        throw DecodingError.dataCorrupted(
+            DecodingError.Context(
+                codingPath: codingPath,
+                debugDescription: "Missing scan date"
+            )
+        )
     }
 }
 
@@ -290,7 +298,7 @@ private struct HairItemPayload: Decodable {
         deviceId = try container.decodeIfPresent(String.self, forKey: .deviceId)
         physicalLength = try container.decodeIfPresent(Double.self, forKey: .physicalLength)
         if let value = try container.decodeIfPresent(String.self, forKey: .uploadTime) {
-            uploadTime = ISO8601DateFormatter.fractionalSeconds.date(from: value) ?? ISO8601DateFormatter.internetDateTime.date(from: value)
+            uploadTime = ScanRecordDateParser.date(from: value)
         } else {
             uploadTime = nil
         }
@@ -437,6 +445,31 @@ private struct RecipePayload: Decodable {
 private struct RecipeComponentPayload: Decodable {
     let name: String
     let grams: Double
+}
+
+private enum ScanRecordDateParser {
+    private static let localDateTimeWithFractionalSeconds: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = .current
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS"
+        return formatter
+    }()
+
+    private static let localDateTime: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = .current
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        return formatter
+    }()
+
+    static func date(from value: String) -> Date? {
+        ISO8601DateFormatter.fractionalSeconds.date(from: value)
+            ?? ISO8601DateFormatter.internetDateTime.date(from: value)
+            ?? localDateTimeWithFractionalSeconds.date(from: value)
+            ?? localDateTime.date(from: value)
+    }
 }
 
 private extension ISO8601DateFormatter {

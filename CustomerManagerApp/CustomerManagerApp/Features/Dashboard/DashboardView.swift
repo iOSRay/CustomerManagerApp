@@ -404,17 +404,20 @@ struct DashboardView: View {
             ZStack {
                 Color(red: 0.95, green: 0.97, blue: 0.98).ignoresSafeArea()
 
-                VStack(spacing: 0) {
-                    topBar
-                    content
-                }
-                .padding(.horizontal, sideInset)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .background(Color(red: 0.95, green: 0.97, blue: 0.98))
+                contentLayer
+                    .padding(.horizontal, sideInset)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .background(Color(red: 0.95, green: 0.97, blue: 0.98))
+                    .zIndex(0)
+
+                topBarOverlay
+                    .padding(.horizontal, sideInset)
 
                 if showFilterPopup, page == .records {
                     overlay
+                        .zIndex(200)
                     filterPopup(maxWidth: min(520, geo.size.width - sideInset * 2 - 20))
+                        .zIndex(201)
                 }
             }
             .task {
@@ -441,7 +444,9 @@ struct DashboardView: View {
         }
         .padding(.horizontal, 10)
         .frame(height: 44)
+        .contentShape(Rectangle())
         .background(.white)
+        .zIndex(100)
     }
 
     @ViewBuilder
@@ -460,6 +465,8 @@ struct DashboardView: View {
                             .stroke(Color(red: 0.89, green: 0.91, blue: 0.94), lineWidth: 1)
                     }
             }
+            .buttonStyle(.plain)
+            .zIndex(101)
         }
     }
 
@@ -484,13 +491,31 @@ struct DashboardView: View {
         Button(action: action) {
             Text(title)
                 .font(.system(size: 14, weight: .semibold))
-                .frame(minWidth: 56, minHeight: 30)
+                .frame(width: 56, height: 30)
                 .foregroundStyle(Color(red: 0.09, green: 0.16, blue: 0.23))
                 .background(.white)
+                .contentShape(Rectangle())
                 .overlay {
                     RoundedRectangle(cornerRadius: 10)
                         .stroke(Color(red: 0.89, green: 0.91, blue: 0.94), lineWidth: 1)
                 }
+        }
+        .buttonStyle(.plain)
+        .zIndex(101)
+    }
+
+    private var topBarOverlay: some View {
+        VStack(spacing: 0) {
+            topBar
+            Spacer(minLength: 0)
+        }
+        .zIndex(100)
+    }
+
+    private var contentLayer: some View {
+        VStack(spacing: 0) {
+            Color.clear.frame(height: 44)
+            content
         }
     }
 
@@ -597,6 +622,12 @@ struct DashboardView: View {
                 kpiGridCard(items: statsItems(stats, showSoldDevices: showSoldDevices))
             } else if case .loading = dashboardViewModel.state {
                 kpiGridCard(items: [])
+            } else if case let .failed(message) = dashboardViewModel.state {
+                card {
+                    Text(message)
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color(red: 0.42, green: 0.48, blue: 0.54))
+                }
             } else {
                 kpiGridCard(items: [])
             }
@@ -627,6 +658,12 @@ struct DashboardView: View {
             VStack(alignment: .leading, spacing: 8) {
                 if case .loading = scanViewModel.state {
                     EmptyView()
+                } else if case let .failed(message) = scanViewModel.state {
+                    plainCard {
+                        Text(message)
+                            .font(.system(size: 14))
+                            .foregroundStyle(Color(red: 0.42, green: 0.48, blue: 0.54))
+                    }
                 } else {
                     ForEach(displayedRecords) { record in
                         Button {
@@ -634,7 +671,7 @@ struct DashboardView: View {
                         } label: {
                             VStack(alignment: .leading, spacing: 7) {
                                 HStack(spacing: 10) {
-                                    Text(record.deviceId ?? "hair_item_\(record.id.uuidString.prefix(4))")
+                                    Text(record.deviceId ?? "暂无设备ID")
                                         .font(.system(size: 15, weight: .semibold))
                                         .foregroundStyle(Color(red: 0.09, green: 0.16, blue: 0.23))
                                     Text(DashboardView.listTimeFormatter.string(from: record.scannedAt))
@@ -877,7 +914,7 @@ struct DashboardView: View {
                 Text(record.hairColor)
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.white)
-                Text(record.baseLevelText ?? "7.5–9.0度")
+                Text(record.baseLevelText ?? "暂无底色范围")
                     .font(.system(size: 11))
                     .foregroundStyle(Color.white.opacity(0.92))
                 Text("差异要求1度以内")
@@ -1311,7 +1348,7 @@ struct DashboardView: View {
     }
 
     private func detailTitle(for record: ScanRecord) -> String {
-        record.deviceId ?? "hair_item_\(record.id.uuidString.prefix(4))"
+        record.deviceId ?? "扫描详情"
     }
 
     private func openDetail(_ record: ScanRecord) {

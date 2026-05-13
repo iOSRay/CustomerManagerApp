@@ -67,9 +67,12 @@ final class ScanRecordListViewModel: ObservableObject {
             let records = try await scanRecordService.fetchRecords(filter: filter.query)
             state = .loaded(records)
         } catch {
-            // Keep list available with offline fallback data.
-            state = .loaded(previousRecords.isEmpty ? PreviewMocks.records : previousRecords)
-            noticeMessage = "网络异常，已展示离线数据"
+            if previousRecords.isEmpty {
+                state = .failed("扫描记录加载失败")
+            } else {
+                state = .loaded(previousRecords)
+            }
+            noticeMessage = "扫描记录加载失败"
         }
     }
 

@@ -49,9 +49,8 @@ final class DashboardViewModel: ObservableObject {
                 state = .loaded(previousStats)
                 noticeMessage = "网络异常，已保留上次数据"
             } else {
-                // Keep page usable when network is unavailable.
-                state = .loaded(PreviewMocks.stats)
-                noticeMessage = "网络异常，已展示离线数据"
+                state = .failed("统计数据加载失败")
+                noticeMessage = "统计数据加载失败"
             }
         }
     }

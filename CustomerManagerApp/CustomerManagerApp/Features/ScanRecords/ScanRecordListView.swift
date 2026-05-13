@@ -44,7 +44,9 @@ struct ScanRecordListView: View {
         .navigationTitle("扫描记录")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("筛选") { showFilterSheet = true }
+                Button("筛选") {
+                    showFilterSheet = true
+                }
             }
         }
         .sheet(isPresented: $showFilterSheet) {
