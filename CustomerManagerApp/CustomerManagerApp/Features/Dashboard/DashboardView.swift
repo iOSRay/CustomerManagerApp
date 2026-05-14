@@ -3,7 +3,7 @@ import UIKit
 import Kingfisher
 import Refresh
 
-private enum AppPage {
+private enum AppPage: Hashable {
     case home
     case records
     case detail
@@ -370,7 +370,7 @@ struct DashboardView: View {
     @StateObject private var dashboardViewModel: DashboardViewModel
     @StateObject private var scanViewModel: ScanRecordListViewModel
 
-    @State private var page: AppPage = .home
+    @State private var navigationPath: [AppPage] = []
     @State private var statsPane: StatsPane = .all
     @State private var quickRange: QuickRange = .h24
     @State private var showFilterPopup = false
@@ -399,24 +399,31 @@ struct DashboardView: View {
         GeometryReader { geo in
             let sideInset: CGFloat = 0
 
-            ZStack {
-                Color(red: 0.95, green: 0.97, blue: 0.98).ignoresSafeArea()
-
-                contentLayer
-                    .padding(.horizontal, sideInset)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    .background(Color(red: 0.95, green: 0.97, blue: 0.98))
-                    .zIndex(0)
-
-                topBarOverlay
-                    .padding(.horizontal, sideInset)
-
-                if showFilterPopup, page == .records {
-                    overlay
-                        .zIndex(200)
-                    filterPopup(maxWidth: min(520, geo.size.width - sideInset * 2 - 20))
-                        .zIndex(201)
+            NavigationStack(path: $navigationPath) {
+                pageContainer(
+                    page: .home,
+                    sideInset: sideInset,
+                    filterMaxWidth: min(520, geo.size.width - sideInset * 2 - 20)
+                ) {
+                    homeContent
                 }
+                .navigationDestination(for: AppPage.self) { page in
+                    pageContainer(
+                        page: page,
+                        sideInset: sideInset,
+                        filterMaxWidth: min(520, geo.size.width - sideInset * 2 - 20)
+                    ) {
+                        switch page {
+                        case .home:
+                            homeContent
+                        case .records:
+                            recordsContent
+                        case .detail:
+                            detailContent
+                        }
+                    }
+                }
+                .toolbar(.hidden, for: .navigationBar)
             }
             .task {
                 await dashboardViewModel.load()
@@ -430,15 +437,44 @@ struct DashboardView: View {
         }
     }
 
-    private var topBar: some View {
+    private func pageContainer<Content: View>(
+        page: AppPage,
+        sideInset: CGFloat,
+        filterMaxWidth: CGFloat,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        ZStack {
+            Color(red: 0.95, green: 0.97, blue: 0.98).ignoresSafeArea()
+
+            contentLayer(content: content())
+                .padding(.horizontal, sideInset)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .background(Color(red: 0.95, green: 0.97, blue: 0.98))
+                .zIndex(0)
+
+            topBarOverlay(page: page)
+                .padding(.horizontal, sideInset)
+
+            if showFilterPopup, page == .records {
+                overlay
+                    .zIndex(200)
+                filterPopup(maxWidth: filterMaxWidth)
+                    .zIndex(201)
+            }
+        }
+        .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
+    }
+
+    private func topBar(page: AppPage) -> some View {
         HStack {
-            backButton
+            backButton(page: page)
             Spacer()
-            Text(pageTitle)
+            Text(pageTitle(for: page))
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(Color(red: 0.09, green: 0.16, blue: 0.23))
             Spacer()
-            actionButton
+            actionButton(page: page)
         }
         .padding(.horizontal, 10)
         .frame(height: 44)
@@ -448,7 +484,7 @@ struct DashboardView: View {
     }
 
     @ViewBuilder
-    private var backButton: some View {
+    private func backButton(page: AppPage) -> some View {
         if page == .home {
             Color.clear.frame(width: 34, height: 30)
         } else {
@@ -469,11 +505,11 @@ struct DashboardView: View {
     }
 
     @ViewBuilder
-    private var actionButton: some View {
+    private func actionButton(page: AppPage) -> some View {
         switch page {
         case .home:
             topActionButton(title: "记录") {
-                page = .records
+                navigationPath.append(.records)
                 Task { await loadRecordsIfNeeded() }
             }
         case .records:
@@ -502,30 +538,18 @@ struct DashboardView: View {
         .zIndex(101)
     }
 
-    private var topBarOverlay: some View {
+    private func topBarOverlay(page: AppPage) -> some View {
         VStack(spacing: 0) {
-            topBar
+            topBar(page: page)
             Spacer(minLength: 0)
         }
         .zIndex(100)
     }
 
-    private var contentLayer: some View {
+    private func contentLayer<Content: View>(content: Content) -> some View {
         VStack(spacing: 0) {
             Color.clear.frame(height: 44)
             content
-        }
-    }
-
-    @ViewBuilder
-    private var content: some View {
-        switch page {
-        case .home:
-            homeContent
-        case .records:
-            recordsContent
-        case .detail:
-            detailContent
         }
     }
 
@@ -1322,17 +1346,14 @@ struct DashboardView: View {
     }
 
     private func onTapBack() {
-        switch page {
-        case .home:
-            break
-        case .records:
-            page = .home
-        case .detail:
-            page = .records
+        guard !navigationPath.isEmpty else { return }
+        if navigationPath.last == .records {
+            showFilterPopup = false
         }
+        navigationPath.removeLast()
     }
 
-    private var pageTitle: String {
+    private func pageTitle(for page: AppPage) -> String {
         switch page {
         case .home: return "统计"
         case .records: return "扫描记录"
@@ -1350,7 +1371,7 @@ struct DashboardView: View {
 
     private func openDetail(_ record: ScanRecord) {
         selectedRecord = record
-        page = .detail
+        navigationPath.append(.detail)
         isLoadingSelectedRecordDetail = true
 
         Task {
@@ -1375,9 +1396,13 @@ struct DashboardView: View {
         return []
     }
 
+    private var currentPage: AppPage {
+        navigationPath.last ?? .home
+    }
+
     private var isShowingRequestHUD: Bool {
         (dashboardViewModel.isRequesting && !dashboardViewModel.hasLoadedStats)
-            || (scanViewModel.isRequesting && (page != .records || !scanViewModel.hasLoadedRecords))
+            || (scanViewModel.isRequesting && (currentPage != .records || !scanViewModel.hasLoadedRecords))
     }
 
     private var displayedRecords: [ScanRecord] {
