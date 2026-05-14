@@ -11,16 +11,18 @@ final class ScanRecordListViewModel: ObservableObject {
     }
 
     struct Filter {
+        static let pageSize = 20
+
         var startTime: Date?
         var endTime: Date?
         var store: String = ""
         var city: String = ""
         var contact: String = ""
 
-        var query: ScanRecordQuery {
+        func query(page: Int) -> ScanRecordQuery {
             ScanRecordQuery(
-                page: 1,
-                size: 20,
+                page: page,
+                size: Self.pageSize,
                 startTime: startTime,
                 endTime: endTime,
                 storeName: store,
@@ -35,8 +37,10 @@ final class ScanRecordListViewModel: ObservableObject {
     @Published var filter = Filter()
     @Published private(set) var noticeMessage: String?
     @Published private(set) var isRequesting = false
+    @Published private(set) var hasMoreRecords = false
     private var isLoadingList = false
     private var requestCount = 0
+    private var currentPage = 0
 
     var hasLoadedRecords: Bool {
         loadedRecords != nil
@@ -46,8 +50,9 @@ final class ScanRecordListViewModel: ObservableObject {
         self.scanRecordService = scanRecordService
     }
 
-    func load() async {
+    func load(reset: Bool = true) async {
         guard !isLoadingList else { return }
+        guard reset || hasMoreRecords else { return }
         isLoadingList = true
         beginRequest()
         defer {
@@ -64,7 +69,11 @@ final class ScanRecordListViewModel: ObservableObject {
         }
         noticeMessage = nil
         do {
-            let records = try await scanRecordService.fetchRecords(filter: filter.query)
+            let nextPage = reset ? 1 : currentPage + 1
+            let page = try await scanRecordService.fetchRecords(filter: filter.query(page: nextPage))
+            let records = reset ? page.records : previousRecords + page.records
+            currentPage = page.page
+            hasMoreRecords = hasMore(total: page.total, loadedCount: records.count, pageCount: page.records.count, pageSize: page.size)
             state = .loaded(records)
         } catch {
             if previousRecords.isEmpty {
@@ -74,6 +83,13 @@ final class ScanRecordListViewModel: ObservableObject {
             }
             noticeMessage = "扫描记录加载失败"
         }
+    }
+
+    private func hasMore(total: Int?, loadedCount: Int, pageCount: Int, pageSize: Int) -> Bool {
+        if let total {
+            return loadedCount < total
+        }
+        return pageCount >= pageSize
     }
 
     private var loadedRecords: [ScanRecord]? {

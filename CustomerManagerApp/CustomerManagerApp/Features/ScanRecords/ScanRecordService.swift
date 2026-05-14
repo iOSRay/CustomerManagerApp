@@ -1,8 +1,15 @@
 import Foundation
 
 protocol ScanRecordServiceProtocol {
-    func fetchRecords(filter: ScanRecordQuery) async throws -> [ScanRecord]
+    func fetchRecords(filter: ScanRecordQuery) async throws -> ScanRecordPage
     func fetchRecordDetail(workId: Int) async throws -> ScanRecord
+}
+
+struct ScanRecordPage {
+    let records: [ScanRecord]
+    let page: Int
+    let size: Int
+    let total: Int?
 }
 
 struct ScanRecordQuery {
@@ -67,24 +74,45 @@ struct ScanRecordDetailEndpoint: APIEndpoint {
 
 private struct ScanRecordListResponse: Decodable {
     let records: [ScanRecord]
+    let page: Int?
+    let size: Int?
+    let total: Int?
 
     init(from decoder: Decoder) throws {
         if let records = try? [ScanRecord](from: decoder) {
             self.records = records
+            page = nil
+            size = nil
+            total = nil
             return
         }
 
         let container = try decoder.container(keyedBy: CodingKeys.self)
         if let data = try container.decodeIfPresent(ScanRecordListResponse.self, forKey: .data) {
             self.records = data.records
+            page = data.page
+            size = data.size
+            total = data.total
         } else if let records = try container.decodeIfPresent([ScanRecord].self, forKey: .records) {
             self.records = records
+            page = try Self.decodeFlexibleIntIfPresent(in: container, forKey: .page)
+            size = try Self.decodeFlexibleIntIfPresent(in: container, forKey: .size)
+            total = try Self.decodeFlexibleIntIfPresent(in: container, forKey: .total)
         } else if let records = try container.decodeIfPresent([ScanRecord].self, forKey: .items) {
             self.records = records
+            page = try Self.decodeFlexibleIntIfPresent(in: container, forKey: .page)
+            size = try Self.decodeFlexibleIntIfPresent(in: container, forKey: .size)
+            total = try Self.decodeFlexibleIntIfPresent(in: container, forKey: .total)
         } else if let records = try container.decodeIfPresent([ScanRecord].self, forKey: .list) {
             self.records = records
+            page = try Self.decodeFlexibleIntIfPresent(in: container, forKey: .page)
+            size = try Self.decodeFlexibleIntIfPresent(in: container, forKey: .size)
+            total = try Self.decodeFlexibleIntIfPresent(in: container, forKey: .total)
         } else if let records = try container.decodeIfPresent([ScanRecord].self, forKey: .rows) {
             self.records = records
+            page = try Self.decodeFlexibleIntIfPresent(in: container, forKey: .page)
+            size = try Self.decodeFlexibleIntIfPresent(in: container, forKey: .size)
+            total = try Self.decodeFlexibleIntIfPresent(in: container, forKey: .total)
         } else {
             throw DecodingError.keyNotFound(
                 CodingKeys.list,
@@ -99,6 +127,22 @@ private struct ScanRecordListResponse: Decodable {
         case items
         case list
         case rows
+        case page
+        case size
+        case total
+    }
+
+    private static func decodeFlexibleIntIfPresent(
+        in container: KeyedDecodingContainer<CodingKeys>,
+        forKey key: CodingKeys
+    ) throws -> Int? {
+        if let value = try container.decodeIfPresent(Int.self, forKey: key) {
+            return value
+        }
+        if let value = try container.decodeIfPresent(String.self, forKey: key), let intValue = Int(value) {
+            return intValue
+        }
+        return nil
     }
 }
 
@@ -111,13 +155,18 @@ final class ScanRecordService: ScanRecordServiceProtocol {
         self.authService = authService
     }
 
-    func fetchRecords(filter: ScanRecordQuery) async throws -> [ScanRecord] {
+    func fetchRecords(filter: ScanRecordQuery) async throws -> ScanRecordPage {
         let authorization = try await authService.authorizationHeader()
         let response = try await apiClient.request(
             ScanRecordEndpoint(query: filter, authorization: authorization),
             as: ScanRecordListResponse.self
         )
-        return response.records
+        return ScanRecordPage(
+            records: response.records,
+            page: response.page ?? filter.page,
+            size: response.size ?? filter.size,
+            total: response.total
+        )
     }
 
     func fetchRecordDetail(workId: Int) async throws -> ScanRecord {

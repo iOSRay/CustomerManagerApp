@@ -380,14 +380,12 @@ struct DashboardView: View {
     @State private var recordStart = Date().addingTimeInterval(-24 * 3600)
     @State private var recordEnd = Date()
     @State private var usesRecordDateFilter = false
-    @State private var visibleRecordCount = 20
     @State private var isLoadingMoreRecords = false
     @State private var isRefreshingRecords = false
     @State private var isLoadingSelectedRecordDetail = false
     @State private var recordReloadTask: Task<Void, Never>?
     @FocusState private var filterFocusedField: FilterField?
 
-    private let recordPageSize = 20
     private let detailContentInset: CGFloat = 10
     private let detailCardInnerInset: CGFloat = 10
     private let detailPhotoWidth: CGFloat = 160
@@ -729,9 +727,9 @@ struct DashboardView: View {
                 RefreshFooter(refreshing: $isLoadingMoreRecords) {
                     loadMoreRecordsFromFooter()
                 } label: {
-                    refreshFooterLabel(noMore: displayedRecords.count >= currentRecords.count)
+                    refreshFooterLabel(noMore: !scanViewModel.hasMoreRecords)
                 }
-                .noMore(displayedRecords.count >= currentRecords.count)
+                .noMore(!scanViewModel.hasMoreRecords)
                 .preload(offset: 24)
             }
         }
@@ -1102,7 +1100,7 @@ struct DashboardView: View {
                     filterFocusedField = nil
                     showFilterPopup = false
                     syncRecordDateFilter()
-                    Task { await reloadRecords(resetPaging: true) }
+                    Task { await reloadRecords() }
                 }
             }
         }
@@ -1383,7 +1381,7 @@ struct DashboardView: View {
     }
 
     private var displayedRecords: [ScanRecord] {
-        Array(currentRecords.prefix(visibleRecordCount))
+        currentRecords
     }
 
     @MainActor
@@ -1401,27 +1399,26 @@ struct DashboardView: View {
     @MainActor
     private func loadRecordsIfNeeded() async {
         if case .idle = scanViewModel.state {
-            await reloadRecords(resetPaging: true)
+            await reloadRecords()
         }
     }
 
     @MainActor
-    private func reloadRecords(resetPaging: Bool) async {
-        let previousVisibleCount = visibleRecordCount
+    private func reloadRecords() async {
         if let recordReloadTask {
             await recordReloadTask.value
-            updateRecordPaging(reset: resetPaging, previousVisibleCount: previousVisibleCount)
+            finishRecordReload()
             return
         }
 
         syncRecordDateFilter()
         let task = Task {
-            await scanViewModel.load()
+            await scanViewModel.load(reset: true)
         }
         recordReloadTask = task
         await task.value
         recordReloadTask = nil
-        updateRecordPaging(reset: resetPaging, previousVisibleCount: previousVisibleCount)
+        finishRecordReload()
         prefetchVisibleRecordImages()
     }
 
@@ -1435,14 +1432,7 @@ struct DashboardView: View {
         }
     }
 
-    private func updateRecordPaging(reset: Bool, previousVisibleCount: Int) {
-        if currentRecords.isEmpty {
-            visibleRecordCount = 0
-        } else if reset {
-            visibleRecordCount = max(1, min(recordPageSize, currentRecords.count))
-        } else {
-            visibleRecordCount = max(1, min(max(recordPageSize, previousVisibleCount), currentRecords.count))
-        }
+    private func finishRecordReload() {
         isLoadingMoreRecords = false
     }
 
@@ -1453,16 +1443,19 @@ struct DashboardView: View {
         }
 
         Task {
-            await reloadRecords(resetPaging: false)
+            await reloadRecords()
             isRefreshingRecords = false
         }
     }
 
     private func loadMoreRecordsFromFooter() {
-        guard displayedRecords.count < currentRecords.count else { return }
+        guard scanViewModel.hasMoreRecords, !scanViewModel.isRequesting else {
+            isLoadingMoreRecords = false
+            return
+        }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
-            visibleRecordCount = min(visibleRecordCount + recordPageSize, currentRecords.count)
+        Task {
+            await scanViewModel.load(reset: false)
             isLoadingMoreRecords = false
             prefetchVisibleRecordImages()
         }
