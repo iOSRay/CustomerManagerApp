@@ -697,6 +697,7 @@ struct DashboardView: View {
                                         .font(.system(size: 15, weight: .semibold))
                                         .foregroundStyle(Color(red: 0.09, green: 0.16, blue: 0.23))
                                     Text(DashboardView.listTimeFormatter.string(from: record.scannedAt))
+                                    Text(record.storeName.isEmpty ? "暂无门店" : record.storeName)
                                     Text(record.city)
                                     Text(record.contactName)
                                     Spacer(minLength: 0)
@@ -862,7 +863,7 @@ struct DashboardView: View {
                                     detailFormulaLoadingPlaceholder
                                         .frame(height: innerHeight)
                                 } else {
-                                    let rowHeight = innerHeight / CGFloat(items.count)
+                                    let rowHeight = innerHeight / CGFloat(min(items.count, 2))
                                     ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                                         detailItemRow(item: item, rowHeight: rowHeight)
                                             .frame(height: rowHeight, alignment: .top)

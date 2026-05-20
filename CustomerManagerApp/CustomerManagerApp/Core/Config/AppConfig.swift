@@ -1,11 +1,11 @@
 import Foundation
 
 enum AppConstants {
-    static let apiBaseURL = URL(string: "https://api.test.davincidye.com")!
+    static let apiBaseURL = URL(string: "https://api.davincidye.com")!
 
     enum Admin {
         static let username = "admin"
-        static let password = "DavinciTestAdmin2026!"
+        static let password = "j6#Fp2K8&vLq%"
     }
 }
 
