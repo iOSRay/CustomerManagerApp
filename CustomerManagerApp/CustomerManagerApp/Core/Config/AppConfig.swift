@@ -1,11 +1,45 @@
 import Foundation
 
 enum AppConstants {
-    static let apiBaseURL = URL(string: "https://api.davincidye.com")!
+    enum Environment {
+        case production
+        case test
+    }
+
+    static let currentEnvironment: Environment = .production
+
+    static let apiBaseURL = current.apiBaseURL
 
     enum Admin {
-        static let username = "admin"
-        static let password = "j6#Fp2K8&vLq%"
+        static let username = current.adminUsername
+        static let password = current.adminPassword
+    }
+
+    private static var current: EnvironmentConfig {
+        switch currentEnvironment {
+        case .production:
+            return .production
+        case .test:
+            return .test
+        }
+    }
+
+    private struct EnvironmentConfig {
+        let apiBaseURL: URL
+        let adminUsername: String
+        let adminPassword: String
+
+        static let production = EnvironmentConfig(
+            apiBaseURL: URL(string: "https://api.davincidye.com")!,
+            adminUsername: "admin",
+            adminPassword: "j6#Fp2K8&vLq%"
+        )
+
+        static let test = EnvironmentConfig(
+            apiBaseURL: URL(string: "https://api.test.davincidye.com")!,
+            adminUsername: "admin",
+            adminPassword: "DavinciTestAdmin2026!"
+        )
     }
 }
 

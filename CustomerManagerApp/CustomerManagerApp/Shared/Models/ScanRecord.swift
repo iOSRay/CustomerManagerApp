@@ -15,6 +15,8 @@ struct ScanRecordFormulaDetailItem: Codable, Identifiable {
     let part: String
     let formula: String
     let ratio: String
+    let alignedFormulaItems: [String]?
+    let alignedRatioItems: [String]?
     let referenceId: String
     let delta: String
     let labValues: [String]
@@ -280,6 +282,16 @@ private extension Double {
         }
         return String(format: "%.1f", self)
     }
+
+    var hairLevelText: String {
+        guard isFinite, self >= 0 else { return "-" }
+        let eps = 0.0001
+        let fraction = abs(self - floor(self))
+        if fraction < eps || abs(fraction - 0.5) < eps {
+            return String(format: "%.1f", self)
+        }
+        return String(format: "%.2f", self)
+    }
 }
 
 private struct HairItemPayload: Decodable {
@@ -396,10 +408,12 @@ private struct SegmentPayload: Decodable {
 
         return ScanRecordFormulaDetailItem(
             id: UUID(),
-            degree: baseDegree.map { "\($0.cleanDecimalText)度" } ?? "",
+            degree: baseDegree.map { "\($0.hairLevelText)度" } ?? "",
             part: "第\(serialNumber)段 \(segmentLength.map { "\($0.cleanDecimalText)cm" } ?? "")",
-            formula: recipe.map { "配方：\($0.formula)" } ?? (noRecipeReason ?? "暂无配方"),
+            formula: recipe.map { "配方：\($0.displayFormula)" } ?? (noRecipeReason ?? "暂无配方"),
             ratio: recipe.map { "比例：\($0.ratios)" } ?? "",
+            alignedFormulaItems: recipe?.alignedFormulaItems,
+            alignedRatioItems: recipe?.alignedRatioItems,
             referenceId: referUID.map { "参考发条id: \($0)" } ?? "",
             delta: deltaText,
             labValues: labValues,
@@ -440,6 +454,33 @@ private struct RecipePayload: Decodable {
     let formula: String
     let ratios: String
     let components: [RecipeComponentPayload]
+
+    var displayFormula: String {
+        guard let separatorIndex = formula.firstIndex(of: "=") else {
+            return formula
+        }
+        return formula[..<separatorIndex].trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var alignedFormulaItems: [String]? {
+        let items = Self.split(displayFormula, separator: "+")
+        return items.count > 1 ? items : nil
+    }
+
+    var alignedRatioItems: [String]? {
+        let items = Self.split(ratios, separator: ":")
+        guard items.count > 1, items.count == alignedFormulaItems?.count else {
+            return nil
+        }
+        return items
+    }
+
+    private static func split(_ text: String, separator: Character) -> [String] {
+        text
+            .split(separator: separator)
+            .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
 }
 
 private struct RecipeComponentPayload: Decodable {

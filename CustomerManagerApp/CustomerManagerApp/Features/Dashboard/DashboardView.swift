@@ -52,11 +52,12 @@ private struct DetailFormulaItem: Identifiable {
     let part: String
     let formula: String
     let ratio: String
+    let alignedFormulaItems: [String]?
+    let alignedRatioItems: [String]?
     let referenceId: String
     let delta: String
     let lab1: String
     let lab2: String
-    let useAltSwatch: Bool
     let previewAssets: [ScanRecordPreviewImage]
 }
 
@@ -103,7 +104,6 @@ private extension ScanRecordPreviewImage {
 }
 
 private final class DetailPreviewImageTileView: UIView {
-    private let placeholderView = UIView()
     private let imageView = UIImageView()
     private var previewItems: [ImagePreviewItem] = []
     private var previewIndex: Int = 0
@@ -132,15 +132,6 @@ private final class DetailPreviewImageTileView: UIView {
         isUserInteractionEnabled = true
         addGestureRecognizer(tapRecognizer)
 
-        addSubview(placeholderView)
-        placeholderView.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            placeholderView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            placeholderView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            placeholderView.topAnchor.constraint(equalTo: topAnchor),
-            placeholderView.bottomAnchor.constraint(equalTo: bottomAnchor)
-        ])
-
         addSubview(imageView)
         imageView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
@@ -155,23 +146,9 @@ private final class DetailPreviewImageTileView: UIView {
 
     func configure(
         assets: [ScanRecordPreviewImage],
-        displayIndex: Int,
-        alt: Bool
+        displayIndex: Int
     ) {
         previewIndex = displayIndex
-        let colors: [UIColor] = alt
-            ? [UIColor(red: 0.85, green: 0.70, blue: 0.50, alpha: 1), UIColor(red: 0.80, green: 0.63, blue: 0.43, alpha: 1)]
-            : [UIColor(red: 0.88, green: 0.77, blue: 0.58, alpha: 1), UIColor(red: 0.83, green: 0.69, blue: 0.46, alpha: 1)]
-        placeholderView.layer.sublayers?.removeAll()
-        let gradient = CAGradientLayer()
-        gradient.frame = bounds
-        gradient.colors = colors.map(\.cgColor)
-        gradient.startPoint = CGPoint(x: 0.5, y: 0)
-        gradient.endPoint = CGPoint(x: 0.5, y: 1)
-        placeholderView.layer.insertSublayer(gradient, at: 0)
-        placeholderView.layer.borderWidth = 1
-        placeholderView.layer.borderColor = UIColor(red: 0.80, green: 0.72, blue: 0.61, alpha: 1).cgColor
-
         let nextAsset = assets.indices.contains(displayIndex) ? assets[displayIndex] : nil
         previewItems = assets.compactMap { $0.asPreviewItem(placeholder: nil) }
         tapRecognizer.isEnabled = !previewItems.isEmpty
@@ -189,7 +166,6 @@ private final class DetailPreviewImageTileView: UIView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        placeholderView.layer.sublayers?.first?.frame = placeholderView.bounds
         loadImageIfNeeded()
     }
 
@@ -246,14 +222,13 @@ private final class DetailPreviewImageTileView: UIView {
 private struct DetailPreviewImageTile: UIViewRepresentable {
     let assets: [ScanRecordPreviewImage]
     let displayIndex: Int
-    let alt: Bool
 
     func makeUIView(context: Context) -> DetailPreviewImageTileView {
         DetailPreviewImageTileView()
     }
 
     func updateUIView(_ uiView: DetailPreviewImageTileView, context: Context) {
-        uiView.configure(assets: assets, displayIndex: displayIndex, alt: alt)
+        uiView.configure(assets: assets, displayIndex: displayIndex)
     }
 }
 
@@ -954,10 +929,10 @@ struct DashboardView: View {
         let swatchImageHeight = max(88, rowHeight - 26)
 
         return HStack(alignment: .top, spacing: 6) {
-            swatchWithLab(label: item.lab1, alt: item.useAltSwatch, assets: item.previewAssets, displayIndex: 0, imageHeight: swatchImageHeight)
-            swatchWithLab(label: item.lab2, alt: item.useAltSwatch, assets: item.previewAssets, displayIndex: 1, imageHeight: swatchImageHeight)
+            swatchWithLab(label: item.lab1, assets: item.previewAssets, displayIndex: 0, imageHeight: swatchImageHeight)
+            swatchWithLab(label: item.lab2, assets: item.previewAssets, displayIndex: 1, imageHeight: swatchImageHeight)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 7) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(item.degree)
                         .font(.system(size: 22, weight: .semibold))
@@ -967,12 +942,7 @@ struct DashboardView: View {
                         .font(.system(size: 12))
                         .foregroundStyle(Color(red: 0.47, green: 0.54, blue: 0.61))
                 }
-                Text(item.formula)
-                    .font(.system(size: 11))
-                    .foregroundStyle(Color(red: 0.33, green: 0.4, blue: 0.47))
-                Text(item.ratio)
-                    .font(.system(size: 11))
-                    .foregroundStyle(Color(red: 0.33, green: 0.4, blue: 0.47))
+                recipeRows(item: item)
                 Text(item.referenceId)
                     .font(.system(size: 12))
                     .foregroundStyle(Color(red: 0.12, green: 0.19, blue: 0.27))
@@ -985,6 +955,54 @@ struct DashboardView: View {
         .padding(.vertical, 5)
     }
 
+    @ViewBuilder
+    private func recipeRows(item: DetailFormulaItem) -> some View {
+        let textColor = Color(red: 0.33, green: 0.4, blue: 0.47)
+        if let formulaItems = item.alignedFormulaItems,
+           let ratioItems = item.alignedRatioItems,
+           formulaItems.count == ratioItems.count,
+           formulaItems.count > 1 {
+            Grid(alignment: .trailing, horizontalSpacing: 0, verticalSpacing: 5) {
+                GridRow {
+                    Text("配方：")
+                        .gridColumnAlignment(.leading)
+                    ForEach(Array(formulaItems.enumerated()), id: \.offset) { index, value in
+                        Text(value)
+                            .gridColumnAlignment(.center)
+                        if index < formulaItems.count - 1 {
+                            Text(" + ")
+                        }
+                    }
+                }
+                GridRow {
+                    Text("比例：")
+                        .gridColumnAlignment(.leading)
+                    ForEach(Array(ratioItems.enumerated()), id: \.offset) { index, value in
+                        Text(value)
+                            .gridColumnAlignment(.center)
+                        if index < ratioItems.count - 1 {
+                            Text(" : ")
+                        }
+                    }
+                }
+            }
+            .font(.system(size: 11, design: .monospaced))
+            .foregroundStyle(textColor)
+            .lineLimit(1)
+        } else {
+            Text(item.formula)
+                .font(.system(size: 11))
+                .foregroundStyle(textColor)
+                .lineLimit(1)
+            if !item.ratio.isEmpty {
+                Text(item.ratio)
+                    .font(.system(size: 11))
+                    .foregroundStyle(textColor)
+                    .lineLimit(1)
+            }
+        }
+    }
+
     private func detailFormulaItems(for record: ScanRecord) -> [DetailFormulaItem] {
         if let detailItems = record.detailItems, !detailItems.isEmpty {
             return detailItems.map { item in
@@ -993,11 +1011,12 @@ struct DashboardView: View {
                     part: item.part,
                     formula: item.formula,
                     ratio: item.ratio,
+                    alignedFormulaItems: item.alignedFormulaItems,
+                    alignedRatioItems: item.alignedRatioItems,
                     referenceId: item.referenceId,
                     delta: item.delta,
                     lab1: item.labValues.first ?? "",
                     lab2: item.labValues.dropFirst().first ?? "",
-                    useAltSwatch: item.usesAlternateSwatch,
                     previewAssets: item.previewImages
                 )
             }
@@ -1006,9 +1025,9 @@ struct DashboardView: View {
         return []
     }
 
-    private func swatchWithLab(label: String, alt: Bool, assets: [ScanRecordPreviewImage], displayIndex: Int, imageHeight: CGFloat) -> some View {
+    private func swatchWithLab(label: String, assets: [ScanRecordPreviewImage], displayIndex: Int, imageHeight: CGFloat) -> some View {
         VStack(spacing: 4) {
-            DetailPreviewImageTile(assets: assets, displayIndex: displayIndex, alt: alt)
+            DetailPreviewImageTile(assets: assets, displayIndex: displayIndex)
                 .frame(height: imageHeight)
             Text(label)
                 .font(.system(size: 10))
