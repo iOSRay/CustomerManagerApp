@@ -109,7 +109,6 @@ private final class DetailPreviewImageTileView: UIView {
     private var previewIndex: Int = 0
     private var currentAsset: ScanRecordPreviewImage?
     private var lastLoadedCacheKey: String?
-    private var lastLoadedSize: CGSize = .zero
 
     private lazy var tapRecognizer: UITapGestureRecognizer = {
         let gesture = UITapGestureRecognizer(target: self, action: #selector(handleTapPreview))
@@ -156,7 +155,6 @@ private final class DetailPreviewImageTileView: UIView {
         if currentAsset != nextAsset {
             currentAsset = nextAsset
             lastLoadedCacheKey = nil
-            lastLoadedSize = .zero
             imageView.image = nil
             imageView.kf.cancelDownloadTask()
         }
@@ -177,32 +175,25 @@ private final class DetailPreviewImageTileView: UIView {
         let cacheKey = currentAsset.cacheKey?.isEmpty == false
             ? currentAsset.cacheKey!
             : currentURL.absoluteString
-        guard cacheKey != lastLoadedCacheKey || targetSize != lastLoadedSize else { return }
+        guard cacheKey != lastLoadedCacheKey else { return }
 
         lastLoadedCacheKey = cacheKey
-        lastLoadedSize = targetSize
 
-        let resizedSize = currentAsset.rotates90CW
-            ? CGSize(width: targetSize.height, height: targetSize.width)
-            : targetSize
-        let processor: any ImageProcessor = {
-            let resize = ResizingImageProcessor(referenceSize: resizedSize, mode: .aspectFill)
-            if currentAsset.rotates90CW {
-                return resize |> Rotate90CWImageProcessor()
-            }
-            return resize
-        }()
         let resource = KF.ImageResource(downloadURL: currentURL, cacheKey: cacheKey)
+        var options: KingfisherOptionsInfo = [
+            .scaleFactor(UIScreen.main.scale),
+            .cacheOriginalImage,
+            .backgroundDecode,
+            .retryStrategy(DelayRetryStrategy(maxRetryCount: 2, retryInterval: .seconds(1)))
+        ]
+        if currentAsset.rotates90CW {
+            options.append(.processor(Rotate90CWImageProcessor()))
+        }
+
         imageView.kf.setImage(
             with: resource,
             placeholder: nil,
-            options: [
-                .processor(processor),
-                .scaleFactor(UIScreen.main.scale),
-                .cacheOriginalImage,
-                .backgroundDecode,
-                .retryStrategy(DelayRetryStrategy(maxRetryCount: 2, retryInterval: .seconds(1)))
-            ]
+            options: options
         )
     }
 
@@ -804,15 +795,21 @@ struct DashboardView: View {
     }
 
     private func optimizedKFImage(url: URL, size: CGSize) -> KFImage {
+        let screenScale = UIScreen.main.scale
+        let scanStripAspectRatioHint: CGFloat = 64
         let targetSize = CGSize(
-            width: max(1, ceil(size.width * 1.25)),
-            height: max(1, ceil(size.height * 1.25))
+            width: max(
+                1,
+                ceil(size.width * screenScale),
+                ceil(size.height * screenScale * scanStripAspectRatioHint)
+            ),
+            height: max(1, ceil(size.height * screenScale))
         )
         let processor = DownsamplingImageProcessor(size: targetSize)
 
         return KFImage.url(url, cacheKey: SignedImageCacheKey.make(for: url))
             .setProcessor(processor)
-            .scaleFactor(UIScreen.main.scale)
+            .scaleFactor(1)
             .cacheOriginalImage()
             .backgroundDecode()
             .retry(maxCount: 2, interval: .seconds(1))

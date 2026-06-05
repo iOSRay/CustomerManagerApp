@@ -108,7 +108,7 @@ final class APIClient: APIClientProtocol {
         }
 
         if let body = request.httpBody, !body.isEmpty {
-            print("API Request Body: \(body.redactedPreviewString)")
+            logBody("API Request Body", data: body)
         }
     }
 
@@ -117,7 +117,7 @@ final class APIClient: APIClientProtocol {
         print("API Response: \(response.statusCode) \(response.url?.absoluteString ?? "<invalid-url>")")
 
         if !data.isEmpty {
-            print("API Response Body: \(data.redactedPreviewString)")
+            logBody("API Response Body", data: data)
         }
     }
 
@@ -126,13 +126,19 @@ final class APIClient: APIClientProtocol {
         print("API Response: invalid response")
 
         if !data.isEmpty {
-            print("API Response Body: \(data.redactedPreviewString)")
+            logBody("API Response Body", data: data)
         }
     }
 
     private func logError(_ error: Error, request: URLRequest) {
         guard logsEnabled else { return }
         print("API Error: \(request.httpMethod ?? "GET") \(request.url?.absoluteString ?? "<invalid-url>") -> \(error.localizedDescription)")
+    }
+
+    private func logBody(_ label: String, data: Data) {
+        for line in APILogFormatter.bodyLogLines(label: label, data: data) {
+            print(line)
+        }
     }
 
     private func redacted(_ headers: [String: String]) -> [String: String] {
@@ -150,30 +156,41 @@ private struct APIResponseEnvelope<T: Decodable>: Decodable {
     let data: T
 }
 
-private extension Data {
-    var redactedPreviewString: String {
-        if let redacted = redactedJSONPreviewString {
+enum APILogFormatter {
+    private static let chunkSize = 1_000
+
+    static func bodyLogLines(label: String, data: Data) -> [String] {
+        let body = redactedBodyString(from: data)
+        let chunks = body.chunked(maxLength: chunkSize)
+        guard chunks.count > 1 else {
+            return ["\(label): \(body)"]
+        }
+
+        return ["\(label):"]
+            + chunks.enumerated().map { index, chunk in
+                "\(label) [\(index + 1)/\(chunks.count)]: \(chunk)"
+            }
+    }
+
+    static func redactedBodyString(from data: Data) -> String {
+        if let redacted = redactedJSONString(from: data) {
             return redacted
         }
 
-        let limit = 4_000
-        let text = String(data: prefix(limit), encoding: .utf8) ?? "<\(count) bytes>"
-        return count > limit ? "\(text)...<truncated \(count - limit) bytes>" : text
+        return String(data: data, encoding: .utf8) ?? "<\(data.count) bytes>"
     }
 
-    var redactedJSONPreviewString: String? {
-        guard let object = try? JSONSerialization.jsonObject(with: self) else { return nil }
-        let redacted = Self.redactSensitiveValues(in: object)
+    private static func redactedJSONString(from data: Data) -> String? {
+        guard let object = try? JSONSerialization.jsonObject(with: data) else { return nil }
+        let redacted = redactSensitiveValues(in: object)
         guard let data = try? JSONSerialization.data(withJSONObject: redacted, options: [.prettyPrinted, .sortedKeys]) else {
             return nil
         }
 
-        let limit = 4_000
-        let text = String(data: data.prefix(limit), encoding: .utf8) ?? "<\(count) bytes>"
-        return data.count > limit ? "\(text)...<truncated \(data.count - limit) bytes>" : text
+        return String(data: data, encoding: .utf8)
     }
 
-    static func redactSensitiveValues(in value: Any) -> Any {
+    private static func redactSensitiveValues(in value: Any) -> Any {
         if let dictionary = value as? [String: Any] {
             return dictionary.reduce(into: [String: Any]()) { result, item in
                 let key = item.key.lowercased()
@@ -190,5 +207,22 @@ private extension Data {
         }
 
         return value
+    }
+}
+
+private extension String {
+    func chunked(maxLength: Int) -> [String] {
+        guard count > maxLength else { return [self] }
+
+        var chunks: [String] = []
+        var start = startIndex
+
+        while start < endIndex {
+            let end = index(start, offsetBy: maxLength, limitedBy: endIndex) ?? endIndex
+            chunks.append(String(self[start..<end]))
+            start = end
+        }
+
+        return chunks
     }
 }

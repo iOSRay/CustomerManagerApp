@@ -2,7 +2,7 @@ import UIKit
 import Kingfisher
 
 struct Rotate90CWImageProcessor: ImageProcessor {
-    let identifier = "com.customermanager.imageprocessor.rotate90cw"
+    let identifier = "com.customermanager.imageprocessor.rotate90cw.metadata.v2"
 
     func process(item: ImageProcessItem, options: KingfisherParsedOptionsInfo) -> KFCrossPlatformImage? {
         let image: UIImage?
@@ -22,26 +22,17 @@ private extension UIImage {
     func rotated90CW() -> UIImage {
         guard let cgImage else { return self }
 
-        let width = cgImage.width
-        let height = cgImage.height
-        let colorSpace = cgImage.colorSpace ?? CGColorSpaceCreateDeviceRGB()
-        guard let context = CGContext(
-            data: nil,
-            width: height,
-            height: width,
-            bitsPerComponent: cgImage.bitsPerComponent,
-            bytesPerRow: 0,
-            space: colorSpace,
-            bitmapInfo: cgImage.bitmapInfo.rawValue
-        ) else {
-            return self
+        let rotatedOrientation: UIImage.Orientation = switch imageOrientation {
+        case .up: .right
+        case .right: .down
+        case .down: .left
+        case .left: .up
+        case .upMirrored: .rightMirrored
+        case .rightMirrored: .downMirrored
+        case .downMirrored: .leftMirrored
+        case .leftMirrored: .upMirrored
+        @unknown default: .right
         }
-
-        context.translateBy(x: CGFloat(height), y: 0)
-        context.rotate(by: .pi / 2)
-        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
-
-        guard let rotated = context.makeImage() else { return self }
-        return UIImage(cgImage: rotated, scale: scale, orientation: .up)
+        return UIImage(cgImage: cgImage, scale: scale, orientation: rotatedOrientation)
     }
 }
