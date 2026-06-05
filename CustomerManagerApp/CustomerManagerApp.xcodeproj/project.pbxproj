@@ -10,6 +10,7 @@
 		1E8AA45CDCB4C9A3E0A8CC5E /* ScanRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6092399A205FA500B9BCFB78 /* ScanRecord.swift */; };
 		25B10AA90A1B4F37A75A7D77 /* LoadingHUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = E47D89097C2B4C7EACB62E5E /* LoadingHUD.swift */; };
 		2C54E328ECB20ACC4F8B959F /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61C458244321D49FCD80CC55 /* AppConfig.swift */; };
+		34A8C5A12F00000100000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 34A8C5A02F00000100000001 /* Assets.xcassets */; };
 		37CD58B4DD4C051AA93CECA3 /* ScanRecordListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA2006040E7718AF75B65324 /* ScanRecordListView.swift */; };
 		39C0BF79179EF32EFEEEF8DB /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 47701D2D928178DD311D8E7A /* Foundation.framework */; };
 		3A8DE5FBB16130674AADEDF9 /* ScanRecordListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFBF68C20C1F5201005CC832 /* ScanRecordListViewModel.swift */; };
@@ -53,6 +54,7 @@
 		0A1B2A64352A7CFD0BF78940 /* RootView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RootView.swift; path = CustomerManagerApp/App/RootView.swift; sourceTree = "<group>"; };
 		0DADF0555044BEA4FB863F3E /* DashboardStats.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DashboardStats.swift; path = CustomerManagerApp/Shared/Models/DashboardStats.swift; sourceTree = "<group>"; };
 		241B8CFE83D7B668AC5ACE9C /* ScanRecordService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ScanRecordService.swift; path = CustomerManagerApp/Features/ScanRecords/ScanRecordService.swift; sourceTree = "<group>"; };
+		34A8C5A02F00000100000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = CustomerManagerApp/Assets.xcassets; sourceTree = "<group>"; };
 		3664719137307E8A7A154ACE /* CustomerManagerAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CustomerManagerAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3CB3054D86399EBE91F0701D /* CustomerManagerAppTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CustomerManagerAppTests.swift; path = CustomerManagerAppTests/CustomerManagerAppTests.swift; sourceTree = "<group>"; };
 		47701D2D928178DD311D8E7A /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
@@ -110,6 +112,7 @@
 				719B9F2A2F971EEC00186C60 /* CustomerManagerApp/Features/Preview/ImagePreviewPageCell.swift */,
 				719B9F2B2F971EEC00186C60 /* CustomerManagerApp/Features/Preview/ImagePreviewViewController.swift */,
 				719B9F2C2F971EEC00186C60 /* CustomerManagerApp/Features/Preview/ZoomableImagePreviewView.swift */,
+				34A8C5A02F00000100000001 /* Assets.xcassets */,
 				F22100072F00000100000001 /* SignedImageCacheKey.swift */,
 				F22100092F00000100000001 /* KingfisherImageProcessors.swift */,
 				9DE00F44F011AC685C7E97AB /* AppContainer.swift */,
@@ -266,6 +269,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				34A8C5A12F00000100000001 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
