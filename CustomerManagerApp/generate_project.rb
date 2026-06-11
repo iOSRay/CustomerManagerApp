@@ -7,8 +7,8 @@ FileUtils.rm_rf(project_path) if File.exist?(project_path)
 project = Xcodeproj::Project.new(project_path)
 project_root = File.dirname(project.path.to_s)
 
-main_target = project.new_target(:application, 'CustomerManagerApp', :ios, '17.0')
-test_target = project.new_target(:unit_test_bundle, 'CustomerManagerAppTests', :ios, '17.0')
+main_target = project.new_target(:application, 'CustomerManagerApp', :ios, '15.0')
+test_target = project.new_target(:unit_test_bundle, 'CustomerManagerAppTests', :ios, '15.0')
 test_target.add_dependency(main_target)
 
 [main_target, test_target].each do |target|
@@ -16,7 +16,7 @@ test_target.add_dependency(main_target)
     config.build_settings['SWIFT_VERSION'] = '5.0'
     config.build_settings['DEVELOPMENT_TEAM'] = ''
     config.build_settings['CODE_SIGN_STYLE'] = 'Automatic'
-    config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '17.0'
+    config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
     config.build_settings['GENERATE_INFOPLIST_FILE'] = 'YES'
   end
 end

@@ -24,7 +24,8 @@ struct ScanRecordListView: View {
                 Text(message).foregroundStyle(.red)
             case let .loaded(records):
                 if records.isEmpty {
-                    ContentUnavailableView("暂无记录", systemImage: "tray")
+                    Label("暂无记录", systemImage: "tray")
+                        .foregroundStyle(.secondary)
                 } else {
                     ForEach(records) { record in
                         NavigationLink {
@@ -43,14 +44,14 @@ struct ScanRecordListView: View {
         }
         .navigationTitle("扫描记录")
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .navigationBarTrailing) {
                 Button("筛选") {
                     showFilterSheet = true
                 }
             }
         }
         .sheet(isPresented: $showFilterSheet) {
-            NavigationStack {
+            NavigationView {
                 Form {
                     TextField("门店名称", text: $viewModel.filter.store)
                     TextField("城市", text: $viewModel.filter.city)
@@ -69,7 +70,6 @@ struct ScanRecordListView: View {
                     }
                 }
             }
-            .presentationDetents([.medium])
         }
         .task {
             await viewModel.load()

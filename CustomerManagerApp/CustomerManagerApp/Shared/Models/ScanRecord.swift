@@ -271,6 +271,10 @@ private extension KeyedDecodingContainer where K == ScanRecord.CodingKeys {
 }
 
 private extension Double {
+    var twoDecimalText: String {
+        String(format: "%.2f", self)
+    }
+
     var fullDecimalText: String {
         String(self)
     }
@@ -355,6 +359,7 @@ private struct SegmentPayload: Decodable {
     let referLab: LabPayload?
     let sampledLab: LabPayload?
     let referUID: String?
+    let deltaValue: Double?
     let matchStatus: Int?
     let segmentLength: Double?
     let noRecipeReason: String?
@@ -368,6 +373,7 @@ private struct SegmentPayload: Decodable {
         case referLab = "refer_lab"
         case sampledLab = "sampled_lab"
         case referUID = "refer_uid"
+        case deltaValue = "delta_value"
         case matchStatus = "match_status"
         case segmentLength = "segment_length"
         case noRecipeReason = "no_recipe_reason"
@@ -423,6 +429,9 @@ private struct SegmentPayload: Decodable {
     }
 
     private var deltaText: String {
+        if let deltaValue {
+            return "Delta: \(deltaValue.twoDecimalText)"
+        }
         guard let sampledLab, let referLab else {
             return ""
         }

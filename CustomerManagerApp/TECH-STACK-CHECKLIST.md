@@ -1,7 +1,7 @@
 # 技术栈检查清单
 
 当前已具备：
-- SwiftUI（iOS 17+）
+- SwiftUI（iOS 15+）
 - 原生网络请求封装（URLSession）
 - 基础 MVVM 结构
 - 单元测试入口（XCTest）
@@ -36,4 +36,3 @@
 - 列表与图片加载优化
 - Instruments 监控（内存/卡顿/启动时长）
 - API 聚合与压缩策略
-

@@ -35,7 +35,7 @@ struct LoadingHUD: View {
 private struct LoadingHUDModifier: ViewModifier {
     let isPresented: Bool
     let title: String
-    let delay: Duration
+    let delay: TimeInterval
 
     @State private var isVisible = false
     @State private var presentationTask: Task<Void, Never>?
@@ -51,7 +51,7 @@ private struct LoadingHUDModifier: ViewModifier {
             .onAppear {
                 updateVisibility(for: isPresented)
             }
-            .onChange(of: isPresented) { _, newValue in
+            .onChange(of: isPresented) { newValue in
                 updateVisibility(for: newValue)
             }
             .onDisappear {
@@ -71,7 +71,8 @@ private struct LoadingHUDModifier: ViewModifier {
 
         presentationTask = Task {
             do {
-                try await Task.sleep(for: delay)
+                let nanoseconds = UInt64(max(0, delay) * 1_000_000_000)
+                try await Task.sleep(nanoseconds: nanoseconds)
             } catch {
                 return
             }
@@ -88,7 +89,7 @@ extension View {
     func loadingHUD(
         _ isPresented: Bool,
         title: String = "加载中...",
-        delay: Duration = .milliseconds(180)
+        delay: TimeInterval = 0.18
     ) -> some View {
         modifier(LoadingHUDModifier(isPresented: isPresented, title: title, delay: delay))
     }

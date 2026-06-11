@@ -49,4 +49,45 @@ final class CustomerManagerAppTests: XCTestCase {
         XCTAssertFalse(output.contains("secret"))
         XCTAssertTrue(output.contains("<redacted>"))
     }
+
+    func testScanRecordSegmentUsesAPIDeltaValue() throws {
+        let data = """
+        {
+          "store_name": "门店",
+          "contact_person": "联系人",
+          "city": "城市",
+          "created_at": "2026-06-11T14:41:16Z",
+          "hair_length": "10cm",
+          "hair_color": "目标色",
+          "segments": [
+            {
+              "serial_number": 1,
+              "base_degree": 8.25,
+              "delta_value": 34.200000000000003,
+              "match_status": 1,
+              "refer_uid": "SA1867-9W",
+              "sampled_lab": {
+                "l_value": 65.94,
+                "a_value": -3.3,
+                "b_value": 24.72
+              },
+              "refer_lab": {
+                "l_value": 70.05,
+                "a_value": -5.37,
+                "b_value": 22.63
+              },
+              "recipe": {
+                "formula": "0/11+6/77+0/45+00+3%=2:1:1:24:28",
+                "ratios": "2:1:1:24:28",
+                "components": []
+              }
+            }
+          ]
+        }
+        """.data(using: .utf8)!
+
+        let record = try JSONDecoder().decode(ScanRecord.self, from: data)
+
+        XCTAssertEqual(record.detailItems?.first?.delta, "Delta: 34.20")
+    }
 }

@@ -364,38 +364,27 @@ struct DashboardView: View {
     var body: some View {
         GeometryReader { geo in
             let sideInset: CGFloat = 0
+            let page = currentPage
 
-            NavigationStack(path: $navigationPath) {
-                pageContainer(
-                    page: .home,
-                    sideInset: sideInset,
-                    filterMaxWidth: min(520, geo.size.width - sideInset * 2 - 20)
-                ) {
+            pageContainer(
+                page: page,
+                sideInset: sideInset,
+                filterMaxWidth: min(520, geo.size.width - sideInset * 2 - 20)
+            ) {
+                switch page {
+                case .home:
                     homeContent
+                case .records:
+                    recordsContent
+                case .detail:
+                    detailContent
                 }
-                .navigationDestination(for: AppPage.self) { page in
-                    pageContainer(
-                        page: page,
-                        sideInset: sideInset,
-                        filterMaxWidth: min(520, geo.size.width - sideInset * 2 - 20)
-                    ) {
-                        switch page {
-                        case .home:
-                            homeContent
-                        case .records:
-                            recordsContent
-                        case .detail:
-                            detailContent
-                        }
-                    }
-                }
-                .toolbar(.hidden, for: .navigationBar)
             }
             .task {
                 await dashboardViewModel.load()
             }
             .loadingHUD(isShowingRequestHUD)
-            .onChange(of: showFilterPopup) { _, isPresented in
+            .onChange(of: showFilterPopup) { isPresented in
                 if !isPresented {
                     filterFocusedField = nil
                 }
@@ -429,7 +418,7 @@ struct DashboardView: View {
             }
         }
         .navigationBarBackButtonHidden(true)
-        .toolbar(.hidden, for: .navigationBar)
+        .navigationBarHidden(true)
     }
 
     private func topBar(page: AppPage) -> some View {
@@ -959,24 +948,20 @@ struct DashboardView: View {
            let ratioItems = item.alignedRatioItems,
            formulaItems.count == ratioItems.count,
            formulaItems.count > 1 {
-            Grid(alignment: .trailing, horizontalSpacing: 0, verticalSpacing: 5) {
-                GridRow {
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(spacing: 0) {
                     Text("配方：")
-                        .gridColumnAlignment(.leading)
                     ForEach(Array(formulaItems.enumerated()), id: \.offset) { index, value in
                         Text(value)
-                            .gridColumnAlignment(.center)
                         if index < formulaItems.count - 1 {
                             Text(" + ")
                         }
                     }
                 }
-                GridRow {
+                HStack(spacing: 0) {
                     Text("比例：")
-                        .gridColumnAlignment(.leading)
                     ForEach(Array(ratioItems.enumerated()), id: \.offset) { index, value in
                         Text(value)
-                            .gridColumnAlignment(.center)
                         if index < ratioItems.count - 1 {
                             Text(" : ")
                         }
@@ -1072,7 +1057,7 @@ struct DashboardView: View {
                 TextField(
                     "",
                     text: $scanViewModel.filter.store,
-                    prompt: Text("门店名称").foregroundStyle(Color(red: 0.62, green: 0.67, blue: 0.72))
+                    prompt: Text("门店名称").foregroundColor(Color(red: 0.62, green: 0.67, blue: 0.72))
                 )
                     .textFieldStyle(.plain)
                     .foregroundStyle(Color(red: 0.09, green: 0.16, blue: 0.23))
@@ -1091,7 +1076,7 @@ struct DashboardView: View {
                 TextField(
                     "",
                     text: $scanViewModel.filter.city,
-                    prompt: Text("城市").foregroundStyle(Color(red: 0.62, green: 0.67, blue: 0.72))
+                    prompt: Text("城市").foregroundColor(Color(red: 0.62, green: 0.67, blue: 0.72))
                 )
                     .textFieldStyle(.plain)
                     .foregroundStyle(Color(red: 0.09, green: 0.16, blue: 0.23))
@@ -1111,7 +1096,7 @@ struct DashboardView: View {
             TextField(
                 "",
                 text: $scanViewModel.filter.contact,
-                prompt: Text("联系人").foregroundStyle(Color(red: 0.62, green: 0.67, blue: 0.72))
+                prompt: Text("联系人").foregroundColor(Color(red: 0.62, green: 0.67, blue: 0.72))
             )
                 .textFieldStyle(.plain)
                 .foregroundStyle(Color(red: 0.09, green: 0.16, blue: 0.23))
@@ -1298,18 +1283,15 @@ struct DashboardView: View {
                     .font(.system(size: 14))
                     .foregroundStyle(Color(red: 0.42, green: 0.48, blue: 0.54))
             } else {
-                Grid(horizontalSpacing: 8, verticalSpacing: 8) {
-                    let rowCount = (items.count + 1) / 2
-                    ForEach(0..<rowCount, id: \.self) { rowIndex in
-                        GridRow {
-                            let left = rowIndex * 2
-                            kpiCell(items[left])
-                            if left + 1 < items.count {
-                                kpiCell(items[left + 1])
-                            } else {
-                                Color.clear
-                            }
-                        }
+                LazyVGrid(
+                    columns: [
+                        GridItem(.flexible(), spacing: 8),
+                        GridItem(.flexible(), spacing: 8)
+                    ],
+                    spacing: 8
+                ) {
+                    ForEach(Array(items.enumerated()), id: \.offset) { _, item in
+                        kpiCell(item)
                     }
                 }
             }
